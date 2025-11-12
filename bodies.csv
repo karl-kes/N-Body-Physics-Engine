@@ -1,0 +1,8 @@
+# All body configurations; the format is:
+# Position_x, Position_y, Position_z, Velocity_x, Velocity_y, Velocity_z, Mass
+
+-10000, 10000, 10000, 0, 0, 0, 1.0e20
+10000, -10000, 10000, 0, 0, 0, 1.0e20
+10000, 10000, -10000, 0, 0, 0, 1.0e20
+-10000, 10000, -10000, 0, 0, 0, 1.0e20
+10000, -10000, -10000, 0, 0, 0, 1.0e20
