@@ -4,21 +4,14 @@
 #include <iomanip>
 #include <vector>
 
-double G{ 6.67e-11 };
+static constexpr double G{ 6.67e-11 };
 
-struct Vec_3D {
+class Vec_3D {
+public:
     double x_, y_, z_;
     double norm() {
         return std::sqrt( x_*x_ + y_*y_ + z_*z_ );
     }
-};
-struct State {
-    std::vector<Vec_3D> positions;
-    std::vector<Vec_3D> velocities;
-};
-struct Derivative {
-    std::vector<Vec_3D> d_pos;
-    std::vector<Vec_3D> d_vel;
 };
 
 Vec_3D operator+( Vec_3D const &vec, Vec_3D const &other ) {
@@ -51,60 +44,36 @@ public:
     Body ( Vec_3D pos, Vec_3D vel, double mass ) 
          : pos_( pos ), vel_( vel ), acc_{ 0, 0, 0 }, mass_( mass ) {}
     
-    Vec_3D calculate_force( std::vector<Body> const &other_bodies ) {
-        Vec_3D total_force{ 0, 0, 0 };
+    void calculate_new_acc( std::vector<Body> const &other_bodies ) {
+        Vec_3D total_force{};
 
         for ( std::size_t idx{ 0 }; idx < other_bodies.size(); ++idx ) {
-            Vec_3D R{ other_bodies[idx].pos_ - pos_ };
+            Vec_3D R{ other_bodies[idx].get_pos() - pos_ };
             double dist{ R.norm() };
 
-            if ( dist < 1.0e-20 ) return{ 0, 0, 0 }; // Avoid dividing by 0.
-            double force_mag{ G*mass_*other_bodies[idx].mass_ / ( dist * dist ) };
+            if ( dist < 1.0e-10 ) continue;
+            double force_mag{ ( G * mass_ * other_bodies[idx].get_mass() ) / ( dist * dist ) };
 
-            total_force = R * ( force_mag / dist );
+            total_force += R * ( force_mag / dist );
         }
-
-        return total_force;
-    }
-
-    Vec_3D calculate_acceleration( std::vector<Body> const &other_bodies ) {
-        return ( calculate_force( other_bodies ) * (1.0 / mass_) );
-    }
-
-    void reset_acceleration() { acc_ = { 0, 0, 0 }; }
-    void apply_force( Vec_3D const &force ) {
-        acc_ += ( force * ( 1.0 / mass_ ) );
+        acc_ = total_force * ( 1.0 / mass_ );
     }
 
     void update( double dt ) {
-        pos_ += vel_ * dt;
         vel_ += acc_ * dt;
+        pos_ += vel_ * dt;
     }
-    
-    // Getters:
+
     Vec_3D get_pos() const { return pos_; }
     Vec_3D get_vel() const { return vel_; }
     Vec_3D get_acc() const { return acc_; }
     double get_mass() const { return mass_; }
-
-    // Setters:
-    void set_pos( Vec_3D const &new_pos ) {
-        pos_ = new_pos;
-    }
-    void set_vel( Vec_3D const &new_vel ) {
-        vel_ = new_vel;
-    }
-    void set_acc( Vec_3D const &new_acc ) {
-        acc_ = new_acc;
-    }
 };
 
 int main() {
-    std::cout << "Use 'g++ -std=c++17 name.cpp -o main.exe ; ./main.exe' to run from terminal." << std::endl;
-    
-    static constexpr double MASS{ 1.0e20 };
-    static constexpr double POS{ 1.0e4 };
-    static constexpr double dt{ 0.1 };
+    constexpr double MASS{ 1.0e20 };
+    constexpr double POS{ 1.0e4 };
+    constexpr double dt{ 0.1 };
     int steps{ 0 };
     int current_step{ 0 };
 
@@ -119,58 +88,38 @@ int main() {
     std::cout << "\nNumber of simulation steps: ";
     std::cin >> steps;
 
-    std::cout << "\nStarting 3-Body Simulation..." << std::endl;
-    std::cout << std::fixed << std::setprecision(2);
+    std::cout << "\nStarting N-Body Simulation..." << std::endl;
+    std::cout << std::fixed << std::setprecision( 2 );
 
     for( steps; steps > 0; --steps ) {
-        Vec_3D force_1_2 = B_1.calculate_force( B_2 );
-        Vec_3D force_1_3 = B_1.calculate_force( B_3 );
-        Vec_3D force_2_3 = B_2.calculate_force( B_3 );
-        
-        B_1.reset_acceleration();
-        B_2.reset_acceleration();
-        B_3.reset_acceleration();
-        
-        B_1.apply_force( force_1_2 );
-        B_1.apply_force( force_1_3 );
-        
-        B_2.apply_force( force_1_2 * -1.0 );
-        B_2.apply_force( force_2_3 );
-        
-        B_3.apply_force( force_1_3 * -1.0 );
-        B_3.apply_force( force_2_3 * -1.0 );
-        
-        B_1.update( dt );
-        B_2.update( dt );
-        B_3.update( dt );
+        for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
+            bodies[idx].calculate_new_acc( bodies );
+        }
+
+        for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
+            bodies[idx].update( dt );
+        }
 
         std::cout << "\n<--- Step: " << ( current_step + 1 ) << " --->" << std::endl;
-        
-        Vec_3D pos1 = B_1.get_pos();
-        Vec_3D vel1 = B_1.get_vel();
-        std::cout << "Body 1: Pos(" << pos1.x_/1000.0 << ", " 
-                                    << pos1.y_/1000.0 << ", " 
-                                    << pos1.z_/1000.0 << ") km, ";
-        std::cout << "Vel: " << vel1.norm() << " m/s" << std::endl;
-        
-        Vec_3D pos2 = B_2.get_pos();
-        Vec_3D vel2 = B_2.get_vel();
-        std::cout << "Body 2: Pos(" << pos2.x_/1000.0 << ", " 
-                                    << pos2.y_/1000.0 << ", " 
-                                    << pos2.z_/1000.0 << ") km, ";
-        std::cout << "Vel: " << vel2.norm() << " m/s" << std::endl;
-        
-        Vec_3D pos3 = B_3.get_pos();
-        Vec_3D vel3 = B_3.get_vel();
-        std::cout << "Body 3: Pos(" << pos3.x_/1000.0 << ", " 
-                                    << pos3.y_/1000.0 << ", " 
-                                    << pos3.z_/1000.0 << ") km, ";
-        std::cout << "Vel: " << vel3.norm() << " m/s" << std::endl;
-        
-        std::cout << "Distances: B1-B2: " << ( B_1.get_pos() - B_2.get_pos() ).norm() / 1000.0 << " km, ";
-        std::cout << "B1-B3: " << ( B_1.get_pos() - B_3.get_pos() ).norm() / 1000.0 << " km, ";
-        std::cout << "B2-B3: " << ( B_2.get_pos() - B_3.get_pos() ).norm() / 1000.0 << " km" << std::endl;
 
+        for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
+            Vec_3D curr_body_pos{ bodies[idx].get_pos() };
+            Vec_3D curr_body_vel{ bodies[idx].get_vel() };
+
+            std::cout << "Body " << idx << ": Pos(" << curr_body_pos.x_ / 1000.0 << ", " 
+                                                    << curr_body_pos.y_ / 1000.0 << ", " 
+                                                    << curr_body_pos.z_ / 1000.0 << ") km, ";
+            std::cout << "Vel: " << curr_body_vel.norm() << " m/s" << std::endl;
+        }
+
+        for ( std::size_t idx{ 0 }; idx < bodies.size() - 1; ++idx ) {
+            Vec_3D curr_body_pos{ bodies[idx].get_pos() };
+            Vec_3D R{ bodies[idx].get_pos() - bodies[idx + 1].get_pos() };
+
+            std::cout << "Distances: B" << idx + 1 << "-B" 
+                                        << idx + 2 << ": " 
+                                        << R.norm() / 1000.0 << " km" << std::endl;
+        }
         ++current_step;
     }
 
