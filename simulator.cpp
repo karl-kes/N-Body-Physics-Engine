@@ -92,16 +92,19 @@ int main() {
     std::cout << std::fixed << std::setprecision( 2 );
 
     for( steps; steps > 0; --steps ) {
+        // Calculates new acceleration.
         for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
             bodies[idx].calculate_new_acc( bodies );
         }
 
+        // Updates position and velocity for all bodies.
         for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
             bodies[idx].update( dt );
         }
 
         std::cout << "\n<--- Step: " << ( current_step + 1 ) << " --->" << std::endl;
 
+        // Displays the current position and velocity for all bodies.
         for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
             Vec_3D curr_body_pos{ bodies[idx].get_pos() };
             Vec_3D curr_body_vel{ bodies[idx].get_vel() };
@@ -109,16 +112,25 @@ int main() {
             std::cout << "Body " << idx << ": Pos(" << curr_body_pos.x_ / 1000.0 << ", " 
                                                     << curr_body_pos.y_ / 1000.0 << ", " 
                                                     << curr_body_pos.z_ / 1000.0 << ") km, ";
-            std::cout << "Vel: " << curr_body_vel.norm() << " m/s" << std::endl;
+
+            std::cout << "Vel(" << curr_body_vel.x_ / 3.6 << ", " 
+                                                    << curr_body_vel.y_ / 3.6 << ", " 
+                                                    << curr_body_vel.z_ / 3.6 << ") km/h, ";
+            std::cout << "Speed: " << curr_body_vel.norm() / 3.6 << " km/h" << std::endl;
         }
+        std::cout << std::endl;
 
-        for ( std::size_t idx{ 0 }; idx < bodies.size() - 1; ++idx ) {
-            Vec_3D curr_body_pos{ bodies[idx].get_pos() };
-            Vec_3D R{ bodies[idx].get_pos() - bodies[idx + 1].get_pos() };
+        // Displays distance form all bodies to the other.
+        for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
+            for ( std::size_t second_idx{ 0 }; second_idx < bodies.size(); ++second_idx ) {
+                if ( idx == second_idx ) continue;
 
-            std::cout << "Distances: B" << idx + 1 << "-B" 
-                                        << idx + 2 << ": " 
-                                        << R.norm() / 1000.0 << " km" << std::endl;
+                Vec_3D R{ bodies[idx].get_pos() - bodies[second_idx].get_pos() };
+                std::cout << "Distance: B" << idx + 1 << "-B"
+                                           << second_idx + 1 << ": "
+                                           << R.norm() / 1000.0 << " km" << std::endl;
+            }
+            std::cout << std::endl;
         }
         ++current_step;
     }
