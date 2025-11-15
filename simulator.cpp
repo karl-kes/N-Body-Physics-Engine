@@ -6,6 +6,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 
 static constexpr double G{ 6.67e-11 };
 static constexpr double CONVERT_TO_KMS{ 1.0 / 1000.0 };
@@ -120,7 +121,7 @@ void load_csv_bodies( std::string file_name, std::vector<Body> &bodies ) {
         }
 
         if ( values.size() == 7 ) {
-            bodies.emplace_back( Vec_3D{ values[0], values[1], values[2] },   // Positions
+            bodies.emplace_back( Vec_3D{ values[0], values[1], values[2] }, // Positions
                                  Vec_3D{ values[3], values[4], values[5] }, // Velocities
                                  values[6]                                  // Mass
                                 );
@@ -145,6 +146,7 @@ int main() {
     std::cin >> num_outputs;
 
     std::cout << "\nStarting N-Body Simulation..." << std::endl;
+    auto start_time{ std::chrono::high_resolution_clock::now() };
 
     // Keep values in scientific notation to 3 sig figs.
     std::cout << std::scientific << std::setprecision( 3 );
@@ -152,7 +154,7 @@ int main() {
     double max_energy_drift{};
 
     for( int current_step{}; current_step < steps; ++current_step ) {
-        // Calculates new acceleration
+        // Calculates new acceleration.
         for ( std::size_t idx{ 0 }; idx < bodies.size(); ++idx ) {
             bodies[idx].calculate_new_acc( bodies );
         }
@@ -197,9 +199,11 @@ int main() {
         double energy_drift_percent{ 100.0 * std::abs( current_energy - initial_energy ) / std::abs( initial_energy ) };
         max_energy_drift = std::max( max_energy_drift, energy_drift_percent );
     }
+    auto time_elapsed{ ( std::chrono::high_resolution_clock::now() - start_time ).count() / 1.0e9 };
 
-    std::cout << std::fixed << std::scientific << std::setprecision( 4 );
+    std::cout << std::endl << std::fixed << std::scientific << std::setprecision( 4 );
     std::cout << "Max Energy Drift: " << max_energy_drift << "%." << std::endl;
+    std::cout << "Time elapsed: " << time_elapsed << " seconds." << std::endl;
     std::cout << "\n<--- End of Simulation --->" << std::endl;
 
     return 0;
