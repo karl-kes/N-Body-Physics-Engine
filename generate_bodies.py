@@ -21,98 +21,6 @@ class BodyGenerator:
                 f.write(','.join(map(str, body)) + '\n')
         print(f"Generated {len(bodies)} bodies in '{filename}'")
     
-    def binary_system(self, m1=1e30, m2=5e29, separation=1e11, eccentricity=0.3):
-        """Generate a binary star system with optional orbiting planets"""
-        bodies = []
-        
-        # Calculate orbital velocities for binary
-        G = 6.67430e-11
-        total_mass = m1 + m2
-        r1 = separation * m2 / total_mass  # Distance of m1 from barycenter
-        r2 = separation * m1 / total_mass  # Distance of m2 from barycenter
-        
-        # Orbital velocity
-        v_orb1 = np.sqrt(G * m2 * separation / (r1 * total_mass))
-        v_orb2 = np.sqrt(G * m1 * separation / (r2 * total_mass))
-        
-        # Primary star
-        bodies.append((-r1, 0, 0, 0, v_orb1, 0, m1))
-        # Secondary star
-        bodies.append((r2, 0, 0, 0, -v_orb2, 0, m2))
-        
-        # Add some planets around the binary
-        for i in range(5):
-            planet_dist = separation * np.random.uniform(2, 5)
-            planet_angle = np.random.uniform(0, 2*np.pi)
-            planet_mass = 10**np.random.uniform(24, 27)
-            
-            px = planet_dist * np.cos(planet_angle)
-            py = planet_dist * np.sin(planet_angle)
-            pz = np.random.uniform(-separation/10, separation/10)
-            
-            # Circular orbit velocity around barycenter
-            v_planet = np.sqrt(G * total_mass / planet_dist)
-            pvx = -v_planet * np.sin(planet_angle)
-            pvy = v_planet * np.cos(planet_angle)
-            
-            bodies.append((px, py, pz, pvx, pvy, 0, planet_mass))
-        
-        return bodies
-    
-    def colliding_galaxies(self, n_per_galaxy=50, galaxy_radius=5e12, approach_velocity=50000):
-        """Generate two galaxies on a collision course"""
-        bodies = []
-        
-        # Galaxy 1 - centered at negative x, moving right
-        for i in range(n_per_galaxy):
-            r = galaxy_radius * (np.random.random() ** 0.5)
-            theta = np.random.uniform(0, 2*np.pi)
-            
-            x = -2*galaxy_radius + r * np.cos(theta)
-            y = r * np.sin(theta)
-            z = np.random.normal(0, galaxy_radius/20)  # Thin disk
-            
-            # Rotation + approach velocity
-            v_rot = 100000 * np.sqrt(r/galaxy_radius)
-            vx = approach_velocity - v_rot * np.sin(theta) * 0.5
-            vy = v_rot * np.cos(theta)
-            vz = np.random.normal(0, 5000)
-            
-            mass = 10**np.random.uniform(28, 30) if i < 2 else 10**np.random.uniform(24, 27)
-            bodies.append((x, y, z, vx, vy, vz, mass))
-        
-        # Galaxy 2 - centered at positive x, moving left, tilted
-        tilt_angle = np.pi/4  # 45 degree tilt
-        for i in range(n_per_galaxy):
-            r = galaxy_radius * (np.random.random() ** 0.5)
-            theta = np.random.uniform(0, 2*np.pi)
-            
-            # Create in plane
-            x_local = r * np.cos(theta)
-            y_local = r * np.sin(theta)
-            z_local = np.random.normal(0, galaxy_radius/20)
-            
-            # Apply tilt around y-axis
-            x = 2*galaxy_radius + x_local * np.cos(tilt_angle) - z_local * np.sin(tilt_angle)
-            y = y_local
-            z = x_local * np.sin(tilt_angle) + z_local * np.cos(tilt_angle)
-            
-            # Rotation + approach velocity
-            v_rot = 100000 * np.sqrt(r/galaxy_radius)
-            vx_local = -v_rot * np.sin(theta) * 0.5
-            vy_local = v_rot * np.cos(theta)
-            vz_local = np.random.normal(0, 5000)
-            
-            # Apply tilt to velocities
-            vx = -approach_velocity + vx_local * np.cos(tilt_angle) - vz_local * np.sin(tilt_angle)
-            vy = vy_local
-            vz = vx_local * np.sin(tilt_angle) + vz_local * np.cos(tilt_angle)
-            
-            mass = 10**np.random.uniform(28, 30) if i < 2 else 10**np.random.uniform(24, 27)
-            bodies.append((x, y, z, vx, vy, vz, mass))
-        
-        return bodies
-    
     def planetary_system_with_rings(self, star_mass=2e30):
         """Generate a star with planets, including one with a ring system"""
         bodies = []
@@ -187,109 +95,6 @@ class BodyGenerator:
         
         return bodies
     
-    def trojan_asteroids(self, star_mass=2e30, planet_mass=2e27, planet_dist=1.5e11):
-        """Generate a system with Trojan asteroids at Lagrange points"""
-        bodies = []
-        G = 6.67430e-11
-        
-        # Star
-        bodies.append((0, 0, 0, 0, 0, 0, star_mass))
-        
-        # Planet
-        planet_v = np.sqrt(G * star_mass / planet_dist)
-        bodies.append((planet_dist, 0, 0, 0, planet_v, 0, planet_mass))
-        
-        # L4 Trojans (60 degrees ahead)
-        l4_angle = np.pi/3
-        l4_x = planet_dist * np.cos(l4_angle)
-        l4_y = planet_dist * np.sin(l4_angle)
-        
-        for i in range(30):
-            # Scatter around L4 point
-            scatter = planet_dist * 0.05
-            x = l4_x + np.random.normal(0, scatter)
-            y = l4_y + np.random.normal(0, scatter)
-            z = np.random.normal(0, scatter/10)
-            
-            # Velocity similar to planet's orbital velocity
-            angle = np.arctan2(y, x)
-            v = planet_v * (1 + np.random.normal(0, 0.01))
-            vx = -v * np.sin(angle)
-            vy = v * np.cos(angle)
-            vz = np.random.normal(0, 100)
-            
-            mass = 10**np.random.uniform(20, 22)
-            bodies.append((x, y, z, vx, vy, vz, mass))
-        
-        # L5 Trojans (60 degrees behind)
-        l5_angle = -np.pi/3
-        l5_x = planet_dist * np.cos(l5_angle)
-        l5_y = planet_dist * np.sin(l5_angle)
-        
-        for i in range(30):
-            scatter = planet_dist * 0.05
-            x = l5_x + np.random.normal(0, scatter)
-            y = l5_y + np.random.normal(0, scatter)
-            z = np.random.normal(0, scatter/10)
-            
-            angle = np.arctan2(y, x)
-            v = planet_v * (1 + np.random.normal(0, 0.01))
-            vx = -v * np.sin(angle)
-            vy = v * np.cos(angle)
-            vz = np.random.normal(0, 100)
-            
-            mass = 10**np.random.uniform(20, 22)
-            bodies.append((x, y, z, vx, vy, vz, mass))
-        
-        return bodies
-    
-    def hierarchical_triple(self):
-        """Generate a hierarchical triple star system"""
-        bodies = []
-        G = 6.67430e-11
-        
-        # Inner binary
-        m1, m2 = 1.5e30, 1.2e30
-        inner_sep = 5e10
-        
-        # Outer companion
-        m3 = 8e29
-        outer_sep = 5e11
-        
-        # Inner binary barycenter is at origin
-        r1 = inner_sep * m2 / (m1 + m2)
-        r2 = inner_sep * m1 / (m1 + m2)
-        
-        v1 = np.sqrt(G * m2 * inner_sep / (r1 * (m1 + m2)))
-        v2 = np.sqrt(G * m1 * inner_sep / (r2 * (m1 + m2)))
-        
-        # Inner binary
-        bodies.append((-r1, 0, 0, 0, v1, 0, m1))
-        bodies.append((r2, 0, 0, 0, -v2, 0, m2))
-        
-        # Outer companion orbits the inner binary's barycenter
-        v3 = np.sqrt(G * (m1 + m2) / outer_sep)
-        bodies.append((outer_sep, 0, 0, 0, v3, 0, m3))
-        
-        # Add some planets in stable orbits
-        for i in range(3):
-            # Circumbinary planets
-            dist = outer_sep * (2 + i * 0.5)
-            angle = np.random.uniform(0, 2*np.pi)
-            
-            x = dist * np.cos(angle)
-            y = dist * np.sin(angle)
-            z = np.random.uniform(-1e10, 1e10)
-            
-            v = np.sqrt(G * (m1 + m2 + m3) / dist)
-            vx = -v * np.sin(angle)
-            vy = v * np.cos(angle)
-            
-            mass = 10**np.random.uniform(24, 26)
-            bodies.append((x, y, z, vx, vy, 0, mass))
-        
-        return bodies
-    
     def globular_cluster(self, n_bodies=1000, radius=1e13, core_radius=2e12):
         """Generate a globular cluster with core collapse dynamics"""
         bodies = []
@@ -325,38 +130,6 @@ class BodyGenerator:
             else:  # Main sequence
                 mass = 10**np.random.uniform(28, 29)
             
-            bodies.append((x, y, z, vx, vy, vz, mass))
-        
-        return bodies
-    
-    def asteroid_collision(self):
-        """Two asteroid fields on collision course"""
-        bodies = []
-        
-        # Field 1 - moving right
-        for i in range(40):
-            x = np.random.uniform(-2e11, -1e11)
-            y = np.random.uniform(-5e10, 5e10)
-            z = np.random.uniform(-5e10, 5e10)
-            
-            vx = np.random.uniform(20000, 30000)
-            vy = np.random.uniform(-5000, 5000)
-            vz = np.random.uniform(-5000, 5000)
-            
-            mass = 10**np.random.uniform(20, 23)
-            bodies.append((x, y, z, vx, vy, vz, mass))
-        
-        # Field 2 - moving left
-        for i in range(40):
-            x = np.random.uniform(1e11, 2e11)
-            y = np.random.uniform(-5e10, 5e10)
-            z = np.random.uniform(-5e10, 5e10)
-            
-            vx = np.random.uniform(-30000, -20000)
-            vy = np.random.uniform(-5000, 5000)
-            vz = np.random.uniform(-5000, 5000)
-            
-            mass = 10**np.random.uniform(20, 23)
             bodies.append((x, y, z, vx, vy, vz, mass))
         
         return bodies
@@ -408,13 +181,8 @@ def main():
     gen = BodyGenerator()
     
     scenarios = {
-        'binary': (gen.binary_system, "Binary Star System with Planets"),
-        'galaxies': (gen.colliding_galaxies, "Colliding Galaxies"),
         'rings': (gen.planetary_system_with_rings, "Planetary System with Ringed Giant"),
-        'trojans': (gen.trojan_asteroids, "System with Trojan Asteroids"),
-        'triple': (gen.hierarchical_triple, "Hierarchical Triple Star System"),
         'cluster': (gen.globular_cluster, "Globular Cluster"),
-        'collision': (gen.asteroid_collision, "Colliding Asteroid Fields"),
         'disk': (gen.protoplanetary_disk, "Protoplanetary Disk")
     }
     

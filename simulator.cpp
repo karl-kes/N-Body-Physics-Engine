@@ -10,9 +10,9 @@
 #include <omp.h>
 
 static constexpr double G{ 6.67430e-11 };
-static constexpr double EPSILON{ 1.0e2 };
-static constexpr double CONVERT_TO_KMS{ 1.0 / 1000.0 };
-static constexpr double CONVERT_TO_KM{ 1.0 / 1000.0 };
+static constexpr double EPSILON{ 1.0e4 };
+static constexpr double CONVERT_TO_KMS{ 1e-3 };
+static constexpr double CONVERT_TO_KM{ 1e-3 };
 static constexpr double CONVERT_TO_SEC{ 1.0e-9 };
 
 struct Vec_3D {
@@ -80,9 +80,9 @@ public:
     }
 
     // Body getters.
-    Vec_3D get_pos() const { return pos_; }
-    Vec_3D get_vel() const { return vel_; }
-    Vec_3D get_acc() const { return acc_; }
+    const Vec_3D &get_pos() const { return pos_; }
+    const Vec_3D &get_vel() const { return vel_; }
+    const Vec_3D &get_acc() const { return acc_; }
     double get_mass() const { return mass_; }
 };
 
@@ -160,7 +160,7 @@ int main() {
 
     auto start_time{ std::chrono::high_resolution_clock::now() };
 
-    #pragma omp parallel 
+    #pragma omp parallel
     {
         for( int current_step{}; current_step < steps; ++current_step ) {
             // Calculates new acceleration.
@@ -176,8 +176,7 @@ int main() {
             }
 
             // Outputs information in specific number of outputs.
-            int output_interval{};
-            output_interval = steps / num_outputs;
+            int output_interval{ steps / num_outputs };
 
             #pragma omp single
             {
@@ -189,8 +188,7 @@ int main() {
 
                     // Outputs the current position for all bodies.
                     for ( std::size_t idx = 0; idx < bodies.size(); ++idx ) {
-                        Vec_3D curr_body_pos{ bodies[idx].get_pos() };
-                        Vec_3D curr_body_vel{ bodies[idx].get_vel() };
+                        const Vec_3D& curr_body_pos = bodies[idx].get_pos();
 
                         out_file << current_step << "," 
                                  << idx << ","
@@ -200,8 +198,11 @@ int main() {
                     }
                 }
 
-                if ( current_step % (steps / 100) == 0 ) {
-                    std::cout << "Progress: " << (current_step * 100 / steps) << "%\r" << std::flush;
+                if ( current_step % 10 == 0 || current_step == steps - 1 ) {
+                    float progress = ( ( current_step + 1 ) * 100.0 / steps );
+
+                    std::cout << "Progress: " << std::fixed << std::setprecision(1) 
+                              << progress << "%\r" << std::flush;
                 }
             }
         }

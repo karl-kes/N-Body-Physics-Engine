@@ -1,7 +1,8 @@
 from vpython import *
 import pandas as pd
+import numpy as np
 
-# 1. Load Data
+# 1. Load trajectory data
 data = pd.read_csv('trajectories.csv')
 cols = ['x', 'y', 'z', 'body_id', 'step']
 for col in cols:
@@ -11,88 +12,97 @@ data.dropna(inplace=True)
 data['body_id'] = data['body_id'].astype(int)
 data['step'] = data['step'].astype(int)
 body_ids = data['body_id'].unique()
-print(f"Loaded {len(data)} valid rows for {len(body_ids)} bodies.")
 
-# 2. Setup the Scene with Resizable Window
+# 2. Load masses
+bodies_data = pd.read_csv('bodies.csv', comment='#', header=None,
+                          names=['x', 'y', 'z', 'vx', 'vy', 'vz', 'mass'])
+body_masses = bodies_data['mass'].values
+
+print(f"Loaded {len(data)} trajectory points for {len(body_ids)} bodies.")
+print(f"Loaded masses for {len(body_masses)} bodies from bodies.csv")
+
+# 3. Calculate sphere radii based on mass
+masses = body_masses[body_ids]
+min_mass = masses.min()
+max_mass = masses.max()
+min_radius = 2e8
+max_radius = 2e10
+
+def calculate_radius(mass):
+    if max_mass == min_mass:
+        return (min_radius + max_radius) / 2
+    
+    log_mass = np.log10(mass)
+    log_min = np.log10(min_mass)
+    log_max = np.log10(max_mass)
+    
+    normalized = (log_mass - log_min) / (log_max - log_min)
+    radius = min_radius + normalized * (max_radius - min_radius)
+
+    return radius
+
+body_radii = [calculate_radius(masses[i]) for i in range(len(body_ids))]
+
+# 4. Setup the Scene
 scene.background = color.black
-scene.width = 1400  # Initial width
-scene.height = 800  # Initial height
-scene.resizable = True  # Enable window resizing
-scene.autoscale = False  # Disable autoscaling to maintain view
+scene.width = 1400
+scene.height = 700
+scene.resizable = True
+scene.autoscale = False
 scene.range = 5e11
-scene.userzoom = True  # Allow user to zoom
-scene.userspin = True  # Allow user to rotate view
-scene.userpan = True  # Allow user to pan view
+scene.userzoom = True
+scene.userspin = True
+scene.userpan = True
 
-# 3. Create Coordinate Axes
-axis_length = -scene.range * 10
+# 5. Create Coordinate Axes
+axis_length = -scene.range * 1e3
 axis_thickness = scene.range * 0.002
 axis_opacity = 0.6
 
-# Function to calculate label size based on scene
-def get_label_size():
-    return int(scene.width / 50)  # Dynamic label size based on window width
-
-# X-axis (Red)
 x_axis = arrow(pos=vector(0, 0, 0), 
                axis=vector(axis_length, 0, 0),
                shaftwidth=axis_thickness,
                color=color.red,
                opacity=axis_opacity)
-x_label = label(pos=vector(axis_length, 0, 0),
-                text='X',
-                color=color.red,
-                opacity=0.8,
-                height=get_label_size(),
-                box=False)
-
-# Y-axis (Green)
 y_axis = arrow(pos=vector(0, 0, 0),
                axis=vector(0, axis_length, 0),
                shaftwidth=axis_thickness,
                color=color.green,
                opacity=axis_opacity)
-y_label = label(pos=vector(0, axis_length, 0),
-                text='Y',
-                color=color.green,
-                opacity=0.8,
-                height=get_label_size(),
-                box=False)
-
-# Z-axis (Blue)
 z_axis = arrow(pos=vector(0, 0, 0),
                axis=vector(0, 0, axis_length),
                shaftwidth=axis_thickness,
                color=color.blue,
                opacity=axis_opacity)
-z_label = label(pos=vector(0, 0, axis_length),
-                text='Z',
-                color=color.blue,
-                opacity=0.8,
-                height=get_label_size(),
-                box=False)
 
-# 4. Create Objects
+# 6. Create Objects
 spheres = []
-colors = [color.red, color.cyan, color.yellow, color.green, color.magenta, color.orange, color.white]
+colors_palette = [color.red, color.cyan, color.yellow, color.green, 
+                  color.magenta, color.orange, color.white, color.purple]
+
 for idx, b_id in enumerate(body_ids):
-    col = colors[idx % len(colors)]
+    col = colors_palette[idx % len(colors_palette)]
     obj = sphere(
-        radius=6e8,
+        radius=body_radii[idx],
         color=col, 
         make_trail=True, 
         trail_type="curve", 
-        retain=100
+        retain=10
     )
     spheres.append(obj)
 
-# 5. Animation Controls
+# 7. Animation Loop
 running = True
-animation_speed = 120  # Default frame rate
-
-# 6. Animation Loop
+animation_speed = 60
 steps = data['step'].unique()
 current_step = 0
+
+def keydown(evt):
+    global running
+    if evt.key == ' ':
+        running = not running
+
+scene.bind('keydown', keydown)
 
 while current_step < len(steps):
     rate(animation_speed)
@@ -106,10 +116,9 @@ while current_step < len(steps):
             if not row.empty:
                 new_pos = vector(row['x'].values[0], row['y'].values[0], row['z'].values[0])
                 spheres[i].pos = new_pos
-        
+
         current_step += 1
         
-        # Loop back to beginning when finished
         if current_step >= len(steps):
             current_step = 0
             print("Simulation restarting...")
