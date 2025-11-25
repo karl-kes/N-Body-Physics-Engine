@@ -141,6 +141,75 @@ public:
     }
 };
 
+class Simulation {
+private:
+    std::vector<Body> bodies_;
+    double dt_;
+
+public:
+    Simulation( std::vector<Body> &new_bodies, double new_dt = 1000 ):
+    bodies_{ new_bodies },
+    dt_{ new_dt } {
+        // Empty constructor.
+    }
+
+    // Getters:
+    const Body &get_body( std::size_t idx ) const { 
+        return bodies_[idx];
+    }
+    const double &get_dt() const {
+        return dt_;
+    }
+
+    // Helpers:
+    double calculate_total_energy() const {
+        double Hamiltonian{ 0.0 };
+
+        for ( std::size_t i = 0; i < bodies_.size(); ++i ) {
+            for ( size_t j = i + 1; j < bodies_.size(); ++j ) {
+                Vec_3D R{ get_body(i).get_pos() - get_body(j).get_pos() };
+                double dist{ R.norm() + EPSILON };
+
+                Hamiltonian -= G * get_body(i).get_mass() * get_body(j).get_mass() / dist;
+            }
+            Hamiltonian += 0.5 * get_body(i).get_mass() * get_body(i).get_vel().norm_squared();
+        }
+        
+        return Hamiltonian;
+    }
+
+    void load_csv_bodies() {
+        std::ifstream file( "bodies.csv" );
+        if ( !file.is_open() ) {
+            std::cout << "Error opening bodies.csv." << std::endl;
+            return;
+        }
+
+        std::string line{};
+        while ( std::getline( file, line ) ) {
+            if ( line.empty() || line[0] == '#' ) continue;
+
+
+            std::stringstream string_stream( line );
+            std::string segment{};
+            std::vector<double> values{};
+
+            while ( std::getline( string_stream, segment, ',' ) ) {
+                values.push_back( std::stod( segment ) );
+            }
+
+            if ( values.size() == 7 ) {
+                
+                bodies_.emplace_back( Vec_3D{ values[0], values[1], values[2] }, // Positions
+                                      Vec_3D{ values[3], values[4], values[5] }, // Velocities
+                                      values[6]                                  // Mass
+                                    );
+            }
+        }
+        file.close();
+    }
+};
+
 // Calculates total energy of all bodies.
 double calculate_total_energy( std::vector<Body> const &bodies ) {
     double T{ 0.0 };
