@@ -1,12 +1,4 @@
-*
-
-!main.cpp
-!Body.cpp
-!Body.hpp
-!Vec_3D.cpp
-!Vec_3D.hpp
-!Simulation.cpp
-!Simulation.hpp
-!Constants.hpp
-!render.py
-!.gitignore
+*.exe
+*.csv
+generate_bodies.py
+.vscode
