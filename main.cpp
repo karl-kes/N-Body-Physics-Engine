@@ -4,15 +4,20 @@
 #include "Constants.hpp"
 
 int main() {
-    // Use (No Parallel):
-    // g++ main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/Simulation.cpp -o main.exe
-    // OR (Parallel):
-    // g++ main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/Simulation.cpp -o main.exe -fopenmp
-    // ./main.exe
-    // to compile and run.
+    /* 
+        To compile and run.
+
+        For No Parallel ( <1000 bodies ):
+        g++ -std=c++17 main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/Simulation.cpp -o main.exe
+
+        For Parallel ( >1000 bodies ):
+        g++ -std=c++17 main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/Simulation.cpp -o main.exe -fopenmp
+
+        ./main.exe
+    */
     
     std::vector<Body> bodies{};
-    Simulation Simulation{ bodies, "bodies.csv" };
+    Simulation Simulation{ bodies, "bodies.csv", 10000 };
 
     Simulation.load_csv_bodies();
     Simulation.configure_sim();

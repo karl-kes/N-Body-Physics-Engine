@@ -8,12 +8,12 @@ This project simulates the gravitational interactions between multiple celestial
 
 ## Features
 
-- **Velocity Verlet Integration** — Second-order symplectic integrator that conserves energy over long simulations
-- **Softening Parameter** — Prevents numerical instabilities during close encounters
-- **Energy Drift Monitoring** — Tracks simulation accuracy by monitoring total energy conservation
-- **CSV Import/Export** — Easy configuration of initial conditions and trajectory output
-- **3D Visualization** — Real-time animated rendering with VPython
-- **OpenMP Support** — Optional parallelization for large-scale simulations
+- **Velocity Verlet Integration**: Second-order symplectic integrator that conserves energy over long simulations
+- **Softening Parameter**: Prevents numerical instabilities during close encounters
+- **Energy Drift Monitoring**: Tracks simulation accuracy by monitoring total energy conservation
+- **CSV Import/Export**: Easy configuration of initial conditions and trajectory output
+- **3D Visualization**: Real-time animated rendering with VPython
+- **OpenMP Support**: Optional parallelization for large-scale simulations
 
 ## Project Structure
 
@@ -75,7 +75,7 @@ g++ main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/
 
 3. **Enter simulation parameters** when prompted:
    - Number of steps (e.g., 10000)
-   - Number of outputs (e.g., 500)
+   - Number of outputs (e.g., 1000)
 
 4. **Visualize the results**:
 
@@ -92,8 +92,6 @@ The `bodies.csv` file defines initial conditions for each body:
 | x, y, z | Initial position | meters |
 | vx, vy, vz | Initial velocity | m/s |
 | mass | Body mass | kg |
-
-Lines starting with `#` are treated as comments.
 
 ### Example: Inner Solar System
 
@@ -160,8 +158,6 @@ This method is time-reversible and provides excellent energy conservation.
 | < 100 | Serial execution (no `-fopenmp`) |
 | 100 - 1000 | Test both; serial often faster |
 | > 1000 | Use OpenMP (`-fopenmp`) |
-
-The algorithm has O(n²) complexity. For very large simulations (10,000+ bodies), consider implementing Barnes-Hut tree approximation.
 
 ## Output
 

@@ -4,7 +4,7 @@
 Simulation::Simulation( std::vector<Body> &new_bodies,
                         std::string new_file_name,
                         double new_dt):
-bodies_{ new_bodies },
+bodies_{ std::move( new_bodies ) },
 file_name{ new_file_name },
 dt_{ new_dt } {
     // Empty constructor.
@@ -52,7 +52,6 @@ double Simulation::calculate_total_energy() const {
     }
     return total_energy;
 }
-
 void Simulation::load_csv_bodies() {
     std::ifstream file( file_name );
     if ( !file.is_open() ) {

@@ -11,7 +11,7 @@ mass_( new_mass ) {
 
 }
 
-// Calculates new acceleration based on forces from other bodies.
+// Calculations and updates:
 void Body::calculate_new_acc( std::vector<Body> const &other_bodies, std::size_t const &self_idx ) {
     set_old_acc( acc_ );
     Vec_3D total_acc{};
@@ -21,7 +21,7 @@ void Body::calculate_new_acc( std::vector<Body> const &other_bodies, std::size_t
         
         Vec_3D R{ other_bodies[idx].get_pos() - get_pos() };
         double dist_squared{ R.norm_squared() + EPSILON * EPSILON };
-        if ( dist_squared > 1e24 ) continue;
+        if ( dist_squared > MAX_INTERACTION_DIST_SQ ) continue;
         double dist{ std::sqrt( dist_squared ) };
 
         // Acceleration from law of gravitation: a = R_vector * (GM / r^3) 
@@ -29,8 +29,6 @@ void Body::calculate_new_acc( std::vector<Body> const &other_bodies, std::size_t
     }
     set_acc( total_acc );
 }
-
-// Updates body.
 void Body::update( double const &dt ) {
     set_pos( get_pos() + ( get_vel() * dt + get_acc() * ( 0.5 * dt * dt ) ) );
     set_vel( get_vel() + ( ( get_acc() + get_old_acc() ) * ( 0.5 * dt ) ) );
