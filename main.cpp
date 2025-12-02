@@ -1,11 +1,11 @@
-#include "Vec_3D.hpp"
+#include "Classes/Vec_3D/Vec_3D.hpp"
+#include "Classes/Body/Body.hpp"
+#include "Classes/Simulation/Simulation.hpp"
 #include "Constants.hpp"
-#include "Body.hpp"
-#include "Simulation.hpp"
 
 int main() {
     // Use:
-    // g++ main.cpp Vec_3D.cpp Body.cpp Simulation.cpp -o main.exe
+    // g++ main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/Simulation.cpp -o main.exe
     // ./main.exe
     // to compile and run.
     

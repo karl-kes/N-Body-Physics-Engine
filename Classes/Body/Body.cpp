@@ -1,5 +1,4 @@
 #include "Body.hpp"
-#include "Constants.hpp"
 
 Body::Body ( Vec_3D new_pos,
              Vec_3D new_vel,

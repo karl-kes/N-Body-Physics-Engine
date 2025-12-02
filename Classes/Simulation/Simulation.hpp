@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Body.hpp"
-#include "Constants.hpp"
+#include "../../Constants.hpp"
+#include "../Body/Body.hpp"
 #include <iomanip>
 #include <iostream>
 #include <fstream>

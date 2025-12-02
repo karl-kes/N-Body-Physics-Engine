@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Vec_3D.hpp"
-#include "Constants.hpp"
+#include "../../Constants.hpp"
+#include "../Vec_3D/Vec_3D.hpp"
 #include <vector>
 
 class Body {
