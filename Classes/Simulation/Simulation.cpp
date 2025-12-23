@@ -126,19 +126,19 @@ void Simulation::run_simulation() {
         for( int current_step{}; current_step < get_steps(); ++current_step ) {
             // Updates position and velocity for all bodies.
             #pragma omp for
-            for ( std::size_t idx{}; idx < bodies_.size(); ++idx ) {
+            for ( std::size_t idx = 0; idx < bodies_.size(); ++idx ) {
                 bodies_[idx].update_pos( get_dt() );
             }
             
             // Calculates new acceleration.
             #pragma omp for
-            for ( std::size_t idx{}; idx < bodies_.size(); ++idx ) {
+            for ( std::size_t idx = 0; idx < bodies_.size(); ++idx ) {
                 bodies_[idx].calculate_new_acc( bodies_, idx );
             }
 
             // Updates position and velocity for all bodies.
             #pragma omp for
-            for ( std::size_t idx{}; idx < bodies_.size(); ++idx ) {
+            for ( std::size_t idx = 0; idx < bodies_.size(); ++idx ) {
                 bodies_[idx].update_vel( get_dt() );
             }
 
