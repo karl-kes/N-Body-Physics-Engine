@@ -1,69 +1,72 @@
 #pragma once
 
-class Particle {
+#include <memory>
+
+class Particles {
 private:
     // Mass:
-    double mass_; // kg
+    std::unique_ptr<double[]> mass_;
 
     // Position, Velocity, and Acceleration of particle:
-    double pos_[3]{}; // m
-    double vel_[3]{}; // m/s
-    double acc_[3]{}; // m/s^2
+    std::unique_ptr<double[]> pos_x_, pos_y_, pos_z_;
+    std::unique_ptr<double[]> vel_x_, vel_y_, vel_z_;
+    std::unique_ptr<double[]> acc_x_, acc_y_, acc_z_;
 
 public:
     // Constructor:
-    explicit Particle(
-        double mass,
-        double init_pos_x = 0.0, double init_pos_y = 0.0, double init_pos_z = 0.0,
-        double init_vel_x = 0.0, double init_vel_y = 0.0, double init_vel_z = 0.0,
-        double init_acc_x = 0.0, double init_acc_y = 0.0, double init_acc_z = 0.0 );
+    explicit Particles( std::size_t const num_particles );
 
     // Getters & Setters:
     // Mass
-    [[nodiscard]] double mass() const { return mass_; }
+    [[nodiscard]] double mass( std::size_t const idx ) const { return mass_[idx]; }
 
     // Getters:
     // Positions:
-    [[nodiscard]] double pos_x() const { return pos_[0]; }
-    [[nodiscard]] double pos_y() const { return pos_[1]; }
-    [[nodiscard]] double pos_z() const { return pos_[2]; }
+    [[nodiscard]] double pos_x( std::size_t const idx ) const { return pos_x_[idx]; }
+    [[nodiscard]] double pos_y( std::size_t const idx ) const { return pos_y_[idx]; }
+    [[nodiscard]] double pos_z( std::size_t const idx ) const { return pos_z_[idx]; }
 
     // Velocities:
-    [[nodiscard]] double vel_x() const { return vel_[0]; }
-    [[nodiscard]] double vel_y() const { return vel_[1]; }
-    [[nodiscard]] double vel_z() const { return vel_[2]; }
+    [[nodiscard]] double vel_x( std::size_t const idx ) const { return vel_x_[idx]; }
+    [[nodiscard]] double vel_y( std::size_t const idx ) const { return vel_y_[idx]; }
+    [[nodiscard]] double vel_z( std::size_t const idx ) const { return vel_z_[idx]; }
 
     // Accelerations:
-    [[nodiscard]] double acc_x() const { return acc_[0]; }
-    [[nodiscard]] double acc_y() const { return acc_[1]; }
-    [[nodiscard]] double acc_z() const { return acc_[2]; }
+    [[nodiscard]] double acc_x( std::size_t const idx ) const { return acc_x_[idx]; }
+    [[nodiscard]] double acc_y( std::size_t const idx ) const { return acc_y_[idx]; }
+    [[nodiscard]] double acc_z( std::size_t const idx ) const { return acc_z_[idx]; }
 
-    // Pointers:
-    [[nodiscard]] const double *pos() const { return pos_; }
-    [[nodiscard]] const double *vel() const { return vel_; }
-    [[nodiscard]] const double *acc() const { return acc_; }
+    // Pointer:
+    [[nodiscard]] const std::unique_ptr<double[]> &pos_x() const { return pos_x_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &pos_y() const { return pos_y_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &pos_z() const { return pos_z_; }
+
+    [[nodiscard]] const std::unique_ptr<double[]> &vel_x() const { return vel_x_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &vel_y() const { return vel_y_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &vel_z() const { return vel_z_; }
+
+    [[nodiscard]] const std::unique_ptr<double[]> &acc_x() const { return acc_x_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &acc_y() const { return acc_y_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &acc_z() const { return acc_z_; }
+
+    [[nodiscard]] const std::unique_ptr<double[]> &mass() const { return mass_; }
 
     // Setters:
+    // Mass:
+    std::unique_ptr<double[]> &mass() { return mass_; }
+
     // Positions:
-    double &pos_x() { return pos_[0]; }
-    double &pos_y() { return pos_[1]; }
-    double &pos_z() { return pos_[2]; }
+    std::unique_ptr<double[]> &pos_x() { return pos_x_; }
+    std::unique_ptr<double[]> &pos_y() { return pos_y_; }
+    std::unique_ptr<double[]> &pos_z() { return pos_z_; }
 
     // Velocities:
-    double &vel_x() { return vel_[0]; }
-    double &vel_y() { return vel_[1]; }
-    double &vel_z() { return vel_[2]; }
+    std::unique_ptr<double[]> &vel_x() { return vel_x_; }
+    std::unique_ptr<double[]> &vel_y() { return vel_y_; }
+    std::unique_ptr<double[]> &vel_z() { return vel_z_; }
 
     // Accelerations:
-    double &acc_x() { return acc_[0]; }
-    double &acc_y() { return acc_[1]; }
-    double &acc_z() { return acc_[2]; }
-
-    // Pointers:
-    double *pos() noexcept { return pos_; }
-    double *vel() noexcept { return vel_; }
-    double *acc() noexcept { return acc_; }
-
-    // Helpers:
-    void clear_acc() { acc_x() = 0; acc_y() = 0; acc_z() = 0; };
+    std::unique_ptr<double[]> &acc_x() { return acc_x_; }
+    std::unique_ptr<double[]> &acc_y() { return acc_y_; }
+    std::unique_ptr<double[]> &acc_z() { return acc_z_; }
 };
