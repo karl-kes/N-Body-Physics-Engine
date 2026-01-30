@@ -24,18 +24,26 @@ public:
 
 class Yoshida : public Integrator {
 private:
+    static constexpr double cbrt_2_{ 1.2599210498948732 };
     double w_0_, w_1_;
-    double c_1_, c_2_;
-    double d_1_, d_2_;
+    double c_1_, c_2_, c_3_, c_4_;
+    double d_1_, d_2_, d_3_;
 
 public:
     Yoshida( double dt = 1.0 );
     void integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const override;
 
+    [[nodiscard]] double cbrt_2() const { return cbrt_2_; }
+
     [[nodiscard]] double w_0() const { return w_0_; }
     [[nodiscard]] double w_1() const { return w_1_; }
+
     [[nodiscard]] double c_1() const { return c_1_; }
     [[nodiscard]] double c_2() const { return c_2_; }
+    [[nodiscard]] double c_3() const { return c_3_; }
+    [[nodiscard]] double c_4() const { return c_4_; }
+
     [[nodiscard]] double d_1() const { return d_1_; }
     [[nodiscard]] double d_2() const { return d_2_; }
+    [[nodiscard]] double d_3() const { return d_3_; }
 };
