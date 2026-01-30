@@ -1,22 +1,35 @@
 #pragma once
 
 #include <memory>
+#include <iostream>
 
 class Particles {
 private:
+    // Number of Particles:
+    std::size_t num_particles_;
+
     // Mass:
-    std::unique_ptr<double[]> mass_;
+    std::unique_ptr<double[]> mass_; // kg
 
     // Position, Velocity, and Acceleration of particle:
-    std::unique_ptr<double[]> pos_x_, pos_y_, pos_z_;
-    std::unique_ptr<double[]> vel_x_, vel_y_, vel_z_;
-    std::unique_ptr<double[]> acc_x_, acc_y_, acc_z_;
+    std::unique_ptr<double[]> pos_x_, pos_y_, pos_z_; // m
+    std::unique_ptr<double[]> vel_x_, vel_y_, vel_z_; // m/s
+    std::unique_ptr<double[]> acc_x_, acc_y_, acc_z_; // m/s^2
+    std::unique_ptr<double[]> old_acc_x_, old_acc_y_, old_acc_z_; // m/s^2
 
 public:
-    // Constructor:
+    // Constructor, Destructor, Copy, Move:
     explicit Particles( std::size_t const num_particles );
+    ~Particles() = default;
+    Particles( const Particles& ) = delete;
+    Particles& operator=( const Particles& ) = delete;
+    Particles( Particles&& ) = delete;
+    Particles& operator=( Particles&& ) = delete;
 
     // Getters & Setters:
+    // Num Particles:
+    [[nodiscard]] std::size_t num_particles() const { return num_particles_; }
+
     // Mass
     [[nodiscard]] double mass( std::size_t const idx ) const { return mass_[idx]; }
 
@@ -36,6 +49,10 @@ public:
     [[nodiscard]] double acc_y( std::size_t const idx ) const { return acc_y_[idx]; }
     [[nodiscard]] double acc_z( std::size_t const idx ) const { return acc_z_[idx]; }
 
+    [[nodiscard]] double old_acc_x( std::size_t const idx ) const { return old_acc_x_[idx]; }
+    [[nodiscard]] double old_acc_y( std::size_t const idx ) const { return old_acc_y_[idx]; }
+    [[nodiscard]] double old_acc_z( std::size_t const idx ) const { return old_acc_z_[idx]; }
+
     // Pointer:
     [[nodiscard]] const std::unique_ptr<double[]> &pos_x() const { return pos_x_; }
     [[nodiscard]] const std::unique_ptr<double[]> &pos_y() const { return pos_y_; }
@@ -48,6 +65,10 @@ public:
     [[nodiscard]] const std::unique_ptr<double[]> &acc_x() const { return acc_x_; }
     [[nodiscard]] const std::unique_ptr<double[]> &acc_y() const { return acc_y_; }
     [[nodiscard]] const std::unique_ptr<double[]> &acc_z() const { return acc_z_; }
+
+    [[nodiscard]] const std::unique_ptr<double[]> &old_acc_x() const { return old_acc_x_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &old_acc_y() const { return old_acc_y_; }
+    [[nodiscard]] const std::unique_ptr<double[]> &old_acc_z() const { return old_acc_z_; }
 
     [[nodiscard]] const std::unique_ptr<double[]> &mass() const { return mass_; }
 
@@ -69,4 +90,8 @@ public:
     std::unique_ptr<double[]> &acc_x() { return acc_x_; }
     std::unique_ptr<double[]> &acc_y() { return acc_y_; }
     std::unique_ptr<double[]> &acc_z() { return acc_z_; }
+
+    std::unique_ptr<double[]> &old_acc_x() { return old_acc_x_; }
+    std::unique_ptr<double[]> &old_acc_y() { return old_acc_y_; }
+    std::unique_ptr<double[]> &old_acc_z() { return old_acc_z_; }
 };

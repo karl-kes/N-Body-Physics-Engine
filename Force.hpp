@@ -5,15 +5,15 @@
 #include <cmath>
 #include <cstddef>
 
-class Force_Law {
+class Force {
 public:
-    virtual ~Force_Law() = default;
+    virtual ~Force() = default;
     virtual void apply( Particles &particles ) const = 0;
 };
 
-class Gravity : public Force_Law {
+class Gravity : public Force {
 private:
-    double G_;
+    double G_; // Gravitational Constant
 
 public:
     Gravity();
