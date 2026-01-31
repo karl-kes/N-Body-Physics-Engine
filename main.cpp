@@ -60,14 +60,15 @@ int main() {
 
     constexpr std::size_t num_bodies{ sizeof( bodies ) / sizeof( bodies[0] ) };
 
-    std::cout << "<--- Solar System Simulation --->" << std::endl;
-    std::cout << "Bodies: " << num_bodies << std::endl;
-    std::cout << "Duration: " << constant::num_years << " years" << std::endl;
-    std::cout << std::endl;
-
     Simulation sim{ num_bodies, constant::total_steps, constant::output_interval };
     sim.add_force( std::make_unique<Gravity>() );
     sim.set_integrator( std::make_unique<Yoshida>( constant::dt ) );
+
+    std::cout << "<--- Solar System Simulation --->" << std::endl;
+    std::cout << "Bodies: " << num_bodies << std::endl;
+    std::cout << "Integrator: " << sim.integrator()->name() << std::endl;
+    std::cout << "Duration: " << constant::num_years << " years" << std::endl;
+    std::cout << std::endl;
 
     // Initialize Bodies:
     for ( std::size_t i{}; i < num_bodies; ++i ) {

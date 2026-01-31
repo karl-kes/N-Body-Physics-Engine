@@ -6,15 +6,21 @@
 #include <vector>
 #include <cstddef>
 #include <memory>
+#include <string>
 
 class Integrator {
 protected:
     double dt_;
+    std::string name_;
 public:
-    Integrator( double dt ) : dt_{ dt } {}
+    Integrator( double dt, std::string const &name ) 
+    : dt_{ dt }
+    , name_{name }
+    { }
     virtual ~Integrator() = default;
     virtual void integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const = 0;
     [[nodiscard]] double dt() const { return dt_; }
+    [[nodiscard]] const std::string &name() const { return name_; }
 };
 
 class Velocity_Verlet : public Integrator {

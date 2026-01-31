@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <iomanip>
 #include <cmath>
+#include <chrono>
 
 class Simulation {
 private:

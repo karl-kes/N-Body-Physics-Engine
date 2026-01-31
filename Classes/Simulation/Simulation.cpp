@@ -12,14 +12,18 @@ void Simulation::run() {
     double inital_energy{ total_energy() };
     double max_energy{ inital_energy };
 
+    auto start_time{ std::chrono::high_resolution_clock::now() };
     for ( std::size_t curr_step{}; curr_step < steps(); ++curr_step ) {
         integrator()->integrate( particles(), forces() );
         max_energy = std::max( total_energy(), max_energy );
         print_progress( curr_step, steps() );
     }
+    auto end_time{ std::chrono::high_resolution_clock::now() };
+    auto duration{ std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ) };
 
     double drift{ std::abs( 100.0 * ( max_energy - inital_energy ) / inital_energy ) };
     std::cout << "\nMax Energy Drift: " << std::scientific << std::setprecision( 6 ) << drift << "%" << std::endl;
+    std::cout << "Duration of Simulation: " << duration.count() << " ms" << std::endl;
 }
 
 void Simulation::add_force( std::unique_ptr<Force> force ) {

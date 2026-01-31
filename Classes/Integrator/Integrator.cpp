@@ -1,7 +1,7 @@
 #include "Integrator.hpp"
 
 Velocity_Verlet::Velocity_Verlet( double dt )
-: Integrator{ dt }
+: Integrator{ dt, "Velocity Verlet" }
 { }
 
 void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const {
@@ -37,7 +37,7 @@ void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_p
 }
 
 Yoshida::Yoshida( double dt )
-: Integrator{ dt }
+: Integrator{ dt, "Yoshida" }
 , w_0_{ -cbrt_2() / ( 2.0 - cbrt_2() ) }
 , w_1_{ 1.0 / ( 2.0 - cbrt_2() ) }
 , c_1_{ w_1() / 2.0 }
