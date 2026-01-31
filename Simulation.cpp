@@ -36,24 +36,27 @@ double Simulation::total_energy() const {
 
     for ( std::size_t i{}; i < N; ++i ) {
         auto &a{ particles() };
-        double vel_sq{ a.vel_x()[i]*a.vel_x()[i] + a.vel_y()[i]*a.vel_y()[i] + a.vel_z()[i]*a.vel_z()[i]  };
+        double const vel_sq{ a.vel_x()[i]*a.vel_x()[i] + a.vel_y()[i]*a.vel_y()[i] + a.vel_z()[i]*a.vel_z()[i]  };
 
         // Kinetic Energy:
         // K = 1/2 * m * v^2
         energy += 0.5 * a.mass()[i] * vel_sq;
 
-        for ( std::size_t j{i+1}; j < N; ++j ) {
+        for ( std::size_t j{i + 1}; j < N; ++j ) {
             auto &b{ particles() };
 
-            double dist_x{ b.pos_x()[j] - a.pos_x()[i] };
-            double dist_y{ b.pos_y()[j] - a.pos_y()[i] };
-            double dist_z{ b.pos_z()[j] - a.pos_z()[i] };
+            double const dist_x{ b.pos_x()[j] - a.pos_x()[i] };
+            double const dist_y{ b.pos_y()[j] - a.pos_y()[i] };
+            double const dist_z{ b.pos_z()[j] - a.pos_z()[i] };
 
-            double const inv_R{ 1.0 / std::sqrt( dist_x*dist_x + dist_y*dist_y + dist_z*dist_z ) };
+            double const inv_R{ 1.0 / std::sqrt( dist_x*dist_x + 
+                                                 dist_y*dist_y + 
+                                                 dist_z*dist_z + 
+                                                 constant::EPS*constant::EPS ) };
 
             // Potential Energy:
             // U = -G * m_1 * m_2 / R
-            energy -= G() * a.mass()[i] * b.mass()[j] * inv_R;
+            energy -= constant::G * a.mass()[i] * b.mass()[j] * inv_R;
         }
     }
     return energy;

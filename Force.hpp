@@ -1,9 +1,12 @@
 #pragma once
 
 #include "Particle.hpp"
+#include "Constants.hpp"
+
 #include <vector>
 #include <cmath>
 #include <cstddef>
+#include <omp.h>
 
 class Force {
 public:
@@ -12,13 +15,8 @@ public:
 };
 
 class Gravity : public Force {
-private:
-    // Gravitational Constant:
-    static constexpr double G_{ 6.6743e-11 };
-
 public:
     Gravity();
 
     void apply( Particles &particles ) const override;
-    [[nodiscard]] double G() const { return G_; }
 };

@@ -3,6 +3,7 @@
 #include "Particle.hpp"
 #include "Force.hpp"
 #include "Integrator.hpp"
+#include "Constants.hpp"
 
 #include <memory>
 #include <vector>
@@ -12,7 +13,6 @@
 
 class Simulation {
 private:
-    static constexpr double G_{ 6.6743e-11 };
     Particles particles_;
     std::vector<std::unique_ptr<Force>> forces_;
     std::unique_ptr<Integrator> integrator_;
@@ -41,7 +41,6 @@ public:
 
     [[nodiscard]] std::size_t steps() const { return num_steps_; }
     [[nodiscard]] std::size_t output_interval() const { return output_interval_; }
-    [[nodiscard]] double G() const { return G_; }
 
     std::vector<std::unique_ptr<Force>> &forces() { return forces_; }
     std::unique_ptr<Integrator> &integrator() { return integrator_; }

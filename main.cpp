@@ -4,6 +4,52 @@
 #include "Simulation.hpp"
 
 #include <iostream>
+#include <iomanip>
+#include <cstddef>
+#include <cmath>
+#include <string>
+
+class Body {
+public:
+    const char* name;
+    double mass;
+    double x, y, z;
+    double v_x, v_y, v_z;
+};
+
+// NASA Initial Conditions:
+constexpr Body bodies[] = {
+    { "Sun", 1.989e30,
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0 },
+    { "Mercury", 3.302e23,
+        -1.478e7, -6.553e7, -3.898e6,
+        36.2, -9.0, -4.0 },
+    { "Venus", 4.869e24,
+        -5.765e7, -9.361e7, 2.110e6,
+        29.9, -18.5, -2.1 },
+    { "Earth", 5.972e24,
+        -2.627e7, 1.445e8, -1.049e4,
+        -29.8, -5.4, 0.0 },
+    { "Mars", 6.417e23,
+        2.067e8, 4.500e7, -4.057e6,
+        -3.9, 26.0, 0.65 },
+    { "Jupiter", 1.898e27,
+        5.765e8, 4.405e8, -1.493e7,
+        -7.9, 10.7, 0.14 },
+    { "Saturn", 5.683e26,
+        1.357e9, -5.194e8, -4.480e7,
+        2.9, 9.0, -0.26 },
+    { "Uranus", 8.681e25,
+        1.855e9, 2.233e9, -1.579e7,
+        -5.2, 4.0, 0.08 },
+    { "Neptune", 1.024e26,
+        4.461e9, -2.705e8, -9.775e7,
+        0.29, 5.5, -0.12 },
+    { "Pluto", 1.303e22,
+        2.595e9, -4.513e9, -2.816e8,
+        4.8, 1.5, -1.6 }
+};
 
 int main() {
     /*
@@ -11,97 +57,48 @@ int main() {
         g++ -std=c++17 -O3 -march=native *.cpp -o main.exe
         ./main.exe
     */
-    
-    // Physical constants
-    constexpr double M_sun{ 1.989e30 };      // kg
-    constexpr double M_earth{ 5.972e24 };    // kg
-    constexpr double AU{ 1.496e11 };         // m
-    constexpr double v_earth{ 29780.0 };     // m/s (orbital velocity)
 
-    // Simulation parameters
-    constexpr double dt{ 3600.0 };           // 1 hour timestep
-    constexpr std::size_t steps_per_year{ 8766 };
-    constexpr std::size_t num_years{ 10 };
-    constexpr std::size_t total_steps{ steps_per_year * num_years };
-    constexpr std::size_t output_interval{ steps_per_year };
+    constexpr std::size_t num_bodies{ sizeof( bodies ) / sizeof( bodies[0] ) };
 
-    std::cout << "=== Earth-Sun Two-Body Simulation ===" << std::endl;
-    std::cout << "Integrator: Velocity Verlet (2nd order)" << std::endl;
-    std::cout << "Timestep: " << dt << " s" << std::endl;
-    std::cout << "Duration: " << num_years << " years (" << total_steps << " steps)" << std::endl;
+    std::cout << "<--- Solar System Simulation --->" << std::endl;
+    std::cout << "Bodies: " << num_bodies << std::endl;
+    std::cout << "Integrator: Yoshida 4th Order" << std::endl;
+    std::cout << "Duration: " << constant::num_years << " years" << std::endl;
     std::cout << std::endl;
 
-    // Create simulation with 2 particles
-    Simulation sim{ 2, total_steps, output_interval };
-
-    // Add gravity
+    Simulation sim{ num_bodies, constant::total_steps, constant::output_interval };
     sim.add_force( std::make_unique<Gravity>() );
+    sim.set_integrator( std::make_unique<Yoshida>( constant::dt ) );
 
-    // Set integrator
-    sim.set_integrator( std::make_unique<Velocity_Verlet>( dt ) );
+    // Initialize Bodies:
+    for ( std::size_t i{}; i < num_bodies; ++i ) {
+        sim.particles().mass()[i] = bodies[i].mass;
+        sim.particles().pos_x()[i] = bodies[i].x * constant::KM_TO_M;
+        sim.particles().pos_y()[i] = bodies[i].y * constant::KM_TO_M;
+        sim.particles().pos_z()[i] = bodies[i].z * constant::KM_TO_M;
+        sim.particles().vel_x()[i] = bodies[i].v_x * constant::KM_TO_M;
+        sim.particles().vel_y()[i] = bodies[i].v_y * constant::KM_TO_M;
+        sim.particles().vel_z()[i] = bodies[i].v_z * constant::KM_TO_M;
+        sim.particles().acc_x()[i] = 0.0;
+        sim.particles().acc_y()[i] = 0.0;
+        sim.particles().acc_z()[i] = 0.0;
+    }
 
-    // Initialize Sun (at origin, stationary)
-    sim.particles().mass()[0] = M_sun;
-    sim.particles().pos_x()[0] = 0.0;
-    sim.particles().pos_y()[0] = 0.0;
-    sim.particles().pos_z()[0] = 0.0;
-    sim.particles().vel_x()[0] = 0.0;
-    sim.particles().vel_y()[0] = 0.0;
-    sim.particles().vel_z()[0] = 0.0;
-
-    // Initialize Earth (1 AU from Sun, circular orbit)
-    sim.particles().mass()[1] = M_earth;
-    sim.particles().pos_x()[1] = AU;
-    sim.particles().pos_y()[1] = 0.0;
-    sim.particles().pos_z()[1] = 0.0;
-    sim.particles().vel_x()[1] = 0.0;
-    sim.particles().vel_y()[1] = v_earth;
-    sim.particles().vel_z()[1] = 0.0;
-
-    // Run simulation
+    std::cout << "Running simulation..." << std::endl;
     sim.run();
 
-    // Print final position
-    double final_dist = std::sqrt( 
-        sim.particles().pos_x( 1 ) * sim.particles().pos_x( 1 ) +
-        sim.particles().pos_y( 1 ) * sim.particles().pos_y( 1 ) +
-        sim.particles().pos_z( 1 ) * sim.particles().pos_z( 1 )
-    );
-    std::cout << "Final Earth distance: " << final_dist / AU << " AU" << std::endl;
-
-    // Test Yoshida integrator
-    std::cout << "\n=== Testing Yoshida 4th Order ===" << std::endl;
-    std::cout << "Timestep: " << dt * 10 << " s (10x larger)" << std::endl;
-
-    Simulation sim2{ 2, total_steps / 10, output_interval / 10 };
-    sim2.add_force( std::make_unique<Gravity>() );
-    sim2.set_integrator( std::make_unique<Yoshida>( dt * 10 ) );
-
-    // Same initial conditions
-    sim2.particles().mass()[0] = M_sun;
-    sim2.particles().pos_x()[0] = 0.0;
-    sim2.particles().pos_y()[0] = 0.0;
-    sim2.particles().pos_z()[0] = 0.0;
-    sim2.particles().vel_x()[0] = 0.0;
-    sim2.particles().vel_y()[0] = 0.0;
-    sim2.particles().vel_z()[0] = 0.0;
-
-    sim2.particles().mass()[1] = M_earth;
-    sim2.particles().pos_x()[1] = AU;
-    sim2.particles().pos_y()[1] = 0.0;
-    sim2.particles().pos_z()[1] = 0.0;
-    sim2.particles().vel_x()[1] = 0.0;
-    sim2.particles().vel_y()[1] = v_earth;
-    sim2.particles().vel_z()[1] = 0.0;
-
-    sim2.run();
-
-    double final_dist2 = std::sqrt( 
-        sim2.particles().pos_x( 1 ) * sim2.particles().pos_x( 1 ) +
-        sim2.particles().pos_y( 1 ) * sim2.particles().pos_y( 1 ) +
-        sim2.particles().pos_z( 1 ) * sim2.particles().pos_z( 1 )
-    );
-    std::cout << "\nFinal Earth distance: " << final_dist2 / AU << " AU" << std::endl;
+    // Final distances
+    std::cout << "\nFinal distances from Sun:" << std::endl;
+    for ( std::size_t i{ 1 }; i < num_bodies; ++i ) {
+        double R{ std::sqrt(
+            std::pow( sim.particles().pos_x( i ) - sim.particles().pos_x( 0 ), 2 ) +
+            std::pow( sim.particles().pos_y( i ) - sim.particles().pos_y( 0 ), 2 ) +
+            std::pow( sim.particles().pos_z( i ) - sim.particles().pos_z( 0 ), 2 )
+        ) };
+        std::cout << std::left << std::setw( 10 ) << bodies[i].name
+                  << std::fixed << std::setprecision( 4 )
+                  << R / constant::AU << " AU" << std::endl;
+    }
 
     return 0;
 }
