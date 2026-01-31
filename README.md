@@ -1,38 +1,39 @@
 # N-Body Gravitational Simulation
 
-A high-performance N-body gravitational simulation written in C++ with 3D visualization support using Python and VPython.
+A high-performance N-body gravitational simulation written in C++17, featuring symplectic integrators for long-term orbital stability and energy conservation.
 
 ## Overview
 
-This project simulates the gravitational interactions between multiple celestial bodies using Newtonian mechanics. It implements the Velocity Verlet integration method for accurate and energy-conserving orbital calculations, making it suitable for simulating planetary systems, star clusters, or any gravitationally-bound system.
+This project simulates gravitational interactions between celestial bodies using Newtonian mechanics. It implements both Velocity Verlet and Yoshida 4th-order symplectic integrators, achieving energy drift below 10⁻¹¹% over century-scale simulations. The default configuration simulates the full solar system (Sun + 8 planets + Pluto) using JPL Horizons initial conditions.
 
 ## Features
 
-- **Velocity Verlet Integration**: Second-order symplectic integrator that conserves energy over long simulations
-- **Softening Parameter**: Prevents numerical instabilities during close encounters
-- **Energy Drift Monitoring**: Tracks simulation accuracy by monitoring total energy conservation
-- **CSV Import/Export**: Easy configuration of initial conditions and trajectory output
-- **3D Visualization**: Real-time animated rendering with VPython
-- **OpenMP Support**: Optional parallelization for large-scale simulations
+- **Symplectic Integrators**: 
+  - Velocity Verlet (2nd order)
+  - Yoshida (4th order)
+- **Structure-of-Arrays (SoA) Layout**: Cache-friendly memory layout for better performance
+- **Energy Conservation Tracking**: Monitors total energy drift to validate simulation accuracy
+- **Extensible Force Framework**: Polymorphic design supports adding new force types (Lennard-Jones, etc.)
+- **OpenMP Support**: Optional parallelization for large-scale simulations (WIP)
 
 ## Project Structure
 
 ```
-├── main.cpp                 # Entry point
-├── Constants.hpp            # Physical constants (G, softening, etc.)
-├── bodies.csv               # Input: initial positions, velocities, masses
-├── trajectories.csv         # Output: simulation results
-├── render.py                # 3D visualization script
+├── main.cpp                 # Entry point with solar system initial conditions
+├── Constants.hpp            # Physical constants and simulation parameters
 └── Classes/
-    ├── Vec_3D/
-    │   ├── Vec_3D.hpp       # 3D vector class declaration
-    │   └── Vec_3D.cpp       # 3D vector implementation
-    ├── Body/
-    │   ├── Body.hpp         # Celestial body class declaration
-    │   └── Body.cpp         # Body physics implementation
+    ├── Particle/
+    │   ├── Particle.hpp
+    │   └── Particle.cpp
+    ├── Force/
+    │   ├── Force.hpp        # Abstract force base class
+    │   └── Force.cpp        # Force implementations
+    ├── Integrator/
+    │   ├── Integrator.hpp   # Integrator base class
+    │   └── Integrator.cpp   # Velocity Verlet & Yoshida implementations
     └── Simulation/
-        ├── Simulation.hpp   # Simulation manager declaration
-        └── Simulation.cpp   # Core simulation loop
+        ├── Simulation.hpp   # Simulation manager
+        └── Simulation.cpp   # Core loop and energy calculation
 ```
 
 ## Getting Started
@@ -40,130 +41,136 @@ This project simulates the gravitational interactions between multiple celestial
 ### Prerequisites
 
 - C++ compiler with C++17 support (g++, clang++)
-- Python 3.x (for visualization)
-- VPython (`pip install vpython`)
-- pandas (`pip install pandas`)
-- numpy (`pip install numpy`)
 
 ### Compilation
 
 ```bash
-g++ main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/Simulation.cpp -o main.exe
+g++ -std=c++17 -O3 -march=native *.cpp Classes/Force/*.cpp Classes/Integrator/*.cpp Classes/Particle/*.cpp Classes/Simulation/*.cpp -o main.exe
 ```
 
-For parallel execution with OpenMP (recommended for 1000+ bodies):
-
-```bash
-g++ main.cpp Classes/Vec_3D/Vec_3D.cpp Classes/Body/Body.cpp Classes/Simulation/Simulation.cpp -o main.exe -fopenmp
-```
-
-### Running the Simulation
-
-1. **Configure initial conditions** in `bodies.csv`:
-
-```csv
-# x, y, z, vx, vy, vz, mass
-0, 0, 0, 0, 0, 0, 1.989e30
-1.496e11, 0, 0, 0, 29783, 0, 5.972e24
-```
-
-2. **Run the simulation**:
+### Running
 
 ```bash
 ./main.exe
 ```
 
-3. **Enter simulation parameters** when prompted:
-   - Number of steps (e.g., 10000)
-
-4. **Visualize the results**:
-
-```bash
-python render.py
-```
-
-## Input Format
-
-The `bodies.csv` file defines initial conditions for each body:
-
-| Column | Description | Units |
-|--------|-------------|-------|
-| x, y, z | Initial position | meters |
-| vx, vy, vz | Initial velocity | m/s |
-| mass | Body mass | kg |
-
-### Example: Inner Solar System
-
-```csv
-# Sun
-0, 0, 0, 0, 0, 0, 1.989e30
-# Earth
-1.496e11, 0, 0, 0, 29783, 0, 5.972e24
-# Mars
-2.279e11, 0, 0, 0, 24077, 0, 6.39e23
-# Venus
-1.082e11, 0, 0, 0, 35020, 0, 4.867e24
-```
-
 ## Configuration
 
-Physical constants can be adjusted in `Constants.hpp`:
+Simulation parameters in `Constants.hpp`:
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `G` | 6.67430e-11 | Gravitational constant (m³/kg/s²) |
-| `EPSILON` | 1.0e3 | Softening parameter (m) |
+| `G` | 6.6743e-11 | Gravitational constant (m³/kg/s²) |
+| `EPS` | 1e-9 | Softening parameter (m) |
+| `AU` | 1.496e11 | Astronomical unit (m) |
+| `dt` | 3600 | Timestep (seconds) |
+| `num_years` | 10 | Simulation duration |
 
-**Timestep (`dt`)**: Default is 1000 seconds. Adjust in `Simulation` constructor for different time scales.
+## Initial Conditions
 
-## Visualization Controls
+The default configuration uses approximate JPL Horizons state vectors for January 2025:
 
-The VPython renderer (`render.py`) provides interactive 3D visualization:
-
-| Control | Action |
-|---------|--------|
-| **Spacebar** | Pause/Resume animation |
-| **Mouse drag** | Rotate view |
-| **Scroll** | Zoom in/out |
-| **Right-click drag** | Pan view |
-
-Bodies are colored automatically and sized logarithmically based on mass.
+| Body | Mass (kg) | Position (km) | Velocity (km/s) |
+|------|-----------|---------------|-----------------|
+| Sun | 1.989e30 | Origin | Stationary |
+| Mercury | 3.302e23 | (-1.478e7, -6.553e7, -3.898e6) | (36.2, -9.0, -4.0) |
+| Venus | 4.869e24 | (-5.765e7, -9.361e7, 2.110e6) | (29.9, -18.5, -2.1) |
+| Earth | 5.972e24 | (-2.627e7, 1.445e8, -1.049e4) | (-29.8, -5.4, 0.0) |
+| Mars | 6.417e23 | (2.067e8, 4.500e7, -4.057e6) | (-3.9, 26.0, 0.65) |
+| Jupiter | 1.898e27 | (5.765e8, 4.405e8, -1.493e7) | (-7.9, 10.7, 0.14) |
+| Saturn | 5.683e26 | (1.357e9, -5.194e8, -4.480e7) | (2.9, 9.0, -0.26) |
+| Uranus | 8.681e25 | (1.855e9, 2.233e9, -1.579e7) | (-5.2, 4.0, 0.08) |
+| Neptune | 1.024e26 | (4.461e9, -2.705e8, -9.775e7) | (0.29, 5.5, -0.12) |
+| Pluto | 1.303e22 | (2.595e9, -4.513e9, -2.816e8) | (4.8, 1.5, -1.6) |
 
 ## Physics
 
 ### Gravitational Acceleration
 
-The acceleration of body *i* due to all other bodies:
-
 $$\vec{a}_i = \sum_{j \neq i} \frac{G \cdot m_j}{(|\vec{r}_{ij}|^2 + \epsilon^2)^{3/2}} \vec{r}_{ij}$$
 
-Where ε is the softening parameter that prevents singularities.
+### Yoshida 4th-Order Integrator
+
+Coefficients derived from $w_1 = \frac{1}{2 - \sqrt[3]{2}}$, $w_0 = -\frac{\sqrt[3]{2}}{2 - \sqrt[3]{2}}$:
+
+```
+c₁ = c₄ = w₁/2 ≈ 0.6756
+c₂ = c₃ = (w₀ + w₁)/2 ≈ -0.1756
+d₁ = d₃ = w₁ ≈ 1.3512
+d₂ = w₀ ≈ -1.7024
+```
 
 ### Velocity Verlet Integration
-
-Position and velocity updates:
 
 ```
 x(t+dt) = x(t) + v(t)·dt + 0.5·a(t)·dt²
 v(t+dt) = v(t) + 0.5·(a(t) + a(t+dt))·dt
 ```
 
-This method is time-reversible and provides excellent energy conservation.
+## Performance
 
-## Performance Tips
+| Integrator | Timestep | 10-Year Energy Drift | Steps |
+|------------|----------|----------------------|-------|
+| Velocity Verlet | 1 hour | ~9e-5% | 87,660 |
+| Yoshida | 1 hour | ~5e-12% | 87,660 |
 
-| Body Count | Recommendation |
-|------------|----------------|
-| < 100 | Serial execution (no `-fopenmp`) |
-| 100 - 1000 | Test both; serial often faster |
-| > 1000 | Use OpenMP (`-fopenmp`) |
+## Sample Output
 
-## Output
+```
+<--- Solar System Simulation --->
+Bodies: 10
+Duration: 10 years
 
-The simulation generates `trajectories.csv` with columns:
+Running simulation...
+Progress: 100.0%
+Max Energy Drift: 4.586857e-12%
 
-| Column | Description |
-|--------|-------------|
-| step | Simulation step number |
-| body_id | Body index (0-based) |
-| x, y, z | Position at this step (meters) |
+Final distances from Sun:
+Mercury   0.3051 AU
+Venus     0.7528 AU
+Earth     0.9829 AU
+Mars      1.4655 AU
+Jupiter   4.8432 AU
+Saturn    8.9645 AU
+Uranus    18.5853 AU
+Neptune   29.8446 AU
+Pluto     37.3802 AU
+```
+
+## Extending the Framework
+
+### Adding a New Force
+
+```cpp
+class LennardJones : public Force {
+    double epsilon_, sigma_;
+public:
+    LennardJones( double eps, double sig ) : epsilon_{ eps }, sigma_{ sig } {}
+    
+    void apply( Particles &particles ) const override {
+        // Implementation
+    }
+};
+
+// Usage:
+sim.add_force( std::make_unique<LennardJones>( 1.0, 1.0 ) );
+```
+
+### Adding a New Integrator
+
+```cpp
+class RK4 : public Integrator {
+public:
+    RK4( double dt ) : Integrator{ dt } {}
+    
+    void integrate( Particles &p, std::vector<std::unique_ptr<Force>> const &f ) const override {
+        // Implementation
+    }
+};
+```
+
+## References
+
+- [JPL Horizons System](https://ssd.jpl.nasa.gov/horizons/) — Ephemeris data
+- [JPL Planetary Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/) — Physical parameters
+- Yoshida, H. (1990). "Construction of higher order symplectic integrators". Physics Letters A.

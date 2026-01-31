@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Particle.hpp"
-#include "Force.hpp"
+#include "../Particle/Particle.hpp"
+#include "../Force/Force.hpp"
+
 #include <vector>
 #include <cstddef>
 #include <memory>

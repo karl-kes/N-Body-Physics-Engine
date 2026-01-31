@@ -1,7 +1,7 @@
-#include "Force.hpp"
-#include "Integrator.hpp"
-#include "Particle.hpp"
-#include "Simulation.hpp"
+#include "Classes/Force/Force.hpp"
+#include "Classes/Integrator/Integrator.hpp"
+#include "Classes/Particle/Particle.hpp"
+#include "Classes/Simulation/Simulation.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -54,7 +54,7 @@ constexpr Body bodies[] = {
 int main() {
     /*
         To compile and run:
-        g++ -std=c++17 -O3 -march=native *.cpp -o main.exe
+        g++ -std=c++17 -O3 -march=native *.cpp Classes/Force/*.cpp Classes/Integrator/*.cpp Classes/Particle/*.cpp Classes/Simulation/*.cpp -o main.exe
         ./main.exe
     */
 
@@ -62,7 +62,6 @@ int main() {
 
     std::cout << "<--- Solar System Simulation --->" << std::endl;
     std::cout << "Bodies: " << num_bodies << std::endl;
-    std::cout << "Integrator: Yoshida 4th Order" << std::endl;
     std::cout << "Duration: " << constant::num_years << " years" << std::endl;
     std::cout << std::endl;
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Particle.hpp"
-#include "Force.hpp"
-#include "Integrator.hpp"
-#include "Constants.hpp"
+#include "../Particle/Particle.hpp"
+#include "../Force/Force.hpp"
+#include "../Integrator/Integrator.hpp"
+#include "../../Constants.hpp"
 
 #include <memory>
 #include <vector>

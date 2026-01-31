@@ -1,4 +1,2 @@
 *.exe
-*.csv
-generate_bodies.py
 .vscode

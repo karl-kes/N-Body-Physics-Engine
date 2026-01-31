@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Particle.hpp"
-#include "Constants.hpp"
+#include "../Particle/Particle.hpp"
+#include "../../Constants.hpp"
 
 #include <vector>
 #include <cmath>
