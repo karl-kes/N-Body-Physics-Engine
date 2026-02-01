@@ -7,32 +7,30 @@ Velocity_Verlet::Velocity_Verlet( double dt )
 void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const {
     std::size_t const N{ particles.num_particles() };
 
-    for ( std::size_t i{}; i < N; ++i ) {
-        auto &a{ particles };
+    #pragma omp parallel for schedule( static )
+    for ( std::size_t i = 0; i < N; ++i ) {
+        particles.pos_x()[i] += dt() * ( particles.vel_x()[i] + 0.5 * particles.acc_x()[i] * dt() );
+        particles.pos_y()[i] += dt() * ( particles.vel_y()[i] + 0.5 * particles.acc_y()[i] * dt() );
+        particles.pos_z()[i] += dt() * ( particles.vel_z()[i] + 0.5 * particles.acc_z()[i] * dt() );
 
-        a.pos_x()[i] += dt() * ( a.vel_x()[i] + 0.5 * a.acc_x()[i] * dt() );
-        a.pos_y()[i] += dt() * ( a.vel_y()[i] + 0.5 * a.acc_y()[i] * dt() );
-        a.pos_z()[i] += dt() * ( a.vel_z()[i] + 0.5 * a.acc_z()[i] * dt() );
+        particles.old_acc_x()[i] = particles.acc_x()[i];
+        particles.old_acc_y()[i] = particles.acc_y()[i];
+        particles.old_acc_z()[i] = particles.acc_z()[i];
 
-        a.old_acc_x()[i] = a.acc_x()[i];
-        a.old_acc_y()[i] = a.acc_y()[i];
-        a.old_acc_z()[i] = a.acc_z()[i];
-
-        a.acc_x()[i] = 0.0;
-        a.acc_y()[i] = 0.0;
-        a.acc_z()[i] = 0.0;
+        particles.acc_x()[i] = 0.0;
+        particles.acc_y()[i] = 0.0;
+        particles.acc_z()[i] = 0.0;
     }
 
     for ( auto const &force : forces ) {
         force->apply( particles );
     }
 
-    for ( std::size_t i{}; i < N; ++i ) {
-        auto &a{ particles };
-
-        a.vel_x()[i] += 0.5 * ( a.old_acc_x()[i] + a.acc_x()[i] ) * dt();
-        a.vel_y()[i] += 0.5 * ( a.old_acc_y()[i] + a.acc_y()[i] ) * dt();
-        a.vel_z()[i] += 0.5 * ( a.old_acc_z()[i] + a.acc_z()[i] ) * dt();
+    #pragma omp parallel for schedule( static )
+    for ( std::size_t i = 0; i < N; ++i ) {
+        particles.vel_x()[i] += 0.5 * ( particles.old_acc_x()[i] + particles.acc_x()[i] ) * dt();
+        particles.vel_y()[i] += 0.5 * ( particles.old_acc_y()[i] + particles.acc_y()[i] ) * dt();
+        particles.vel_z()[i] += 0.5 * ( particles.old_acc_z()[i] + particles.acc_z()[i] ) * dt();
     }
 }
 
@@ -53,7 +51,8 @@ void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force
     std::size_t const N{ particles.num_particles() };
 
     auto calculate_pos = [&]( double c ){
-        for ( std::size_t i{}; i < N; ++i ) {
+        #pragma omp parallel for schedule( static )
+        for ( std::size_t i = 0; i < N; ++i ) {
             particles.pos_x()[i] += c * dt() * particles.vel_x()[i];
             particles.pos_y()[i] += c * dt() * particles.vel_y()[i];
             particles.pos_z()[i] += c * dt() * particles.vel_z()[i];
@@ -61,7 +60,8 @@ void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force
     };
 
     auto apply_force = [&](){
-        for ( std::size_t i{}; i < N; ++i ) {
+        #pragma omp parallel for schedule( static )
+        for ( std::size_t i = 0; i < N; ++i ) {
             particles.acc_x()[i] = 0.0;
             particles.acc_y()[i] = 0.0;
             particles.acc_z()[i] = 0.0;
@@ -73,7 +73,8 @@ void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force
     };
 
     auto calculate_vel = [&]( double d ){
-        for ( std::size_t i{}; i < N; ++i ) {
+        #pragma omp parallel for schedule( static )
+        for ( std::size_t i = 0; i < N; ++i ) {
             particles.vel_x()[i] += d * dt() * particles.acc_x()[i];
             particles.vel_y()[i] += d * dt() * particles.acc_y()[i];
             particles.vel_z()[i] += d * dt() * particles.acc_z()[i];
