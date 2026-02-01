@@ -4,6 +4,7 @@
 #include "../Force/Force.hpp"
 #include "../Integrator/Integrator.hpp"
 #include "../../Constants.hpp"
+#include "../../Body.hpp"
 
 #include <memory>
 #include <vector>
@@ -18,6 +19,7 @@ private:
     Particles particles_;
     std::vector<std::unique_ptr<Force>> forces_;
     std::unique_ptr<Integrator> integrator_;
+    std::size_t num_bodies_;
     std::size_t num_steps_;
     std::size_t output_interval_;
 
@@ -45,6 +47,7 @@ public:
 
     [[nodiscard]] std::size_t steps() const { return num_steps_; }
     [[nodiscard]] std::size_t output_interval() const { return output_interval_; }
+    [[nodiscard]] std::size_t num_bodies() const { return num_bodies_; }
 
     std::vector<std::unique_ptr<Force>> &forces() { return forces_; }
     std::unique_ptr<Integrator> &integrator() { return integrator_; }
@@ -53,4 +56,6 @@ public:
     void run();
     void add_force( std::unique_ptr<Force> force );
     void set_integrator( std::unique_ptr<Integrator> sim_integrator );
+    void final_output( Body const *bodies ) const;
+    void initial_output();
 };

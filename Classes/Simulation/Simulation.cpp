@@ -4,6 +4,7 @@ Simulation::Simulation( std::size_t num_particles, std::size_t steps, std::size_
 : particles_{ num_particles }
 , forces_{}
 , integrator_{ nullptr }
+, num_bodies_{ num_particles }
 , num_steps_{ steps }
 , output_interval_{ output_interval }
 { }
@@ -64,4 +65,27 @@ double Simulation::total_energy() const {
     }
     
     return energy;
+}
+
+void Simulation::final_output( Body const *bodies ) const {
+    std::cout << "\nFinal distances from Sun:" << std::endl;
+    for ( std::size_t i{ 1 }; i < num_bodies(); ++i ) {
+        double const dist_x{ particles().pos_x(i) - particles().pos_x(0) };
+        double const dist_y{ particles().pos_y(i) - particles().pos_y(0) };
+        double const dist_z{ particles().pos_z(i) - particles().pos_z(0) };
+
+        double R{ std::sqrt( dist_x*dist_x + dist_y*dist_y + dist_z*dist_z ) };
+
+        std::cout << std::left << std::setw( 10 ) << bodies[i].name
+                  << std::fixed << std::setprecision( 4 )
+                  << R / constant::AU << " AU" << std::endl;
+    }
+}
+
+void Simulation::initial_output() {
+    std::cout << "<--- Solar System Simulation --->" << std::endl;
+    std::cout << "Bodies: " << num_bodies() << std::endl;
+    std::cout << "Integrator: " << integrator()->name() << std::endl;
+    std::cout << "Duration: " << constant::num_years << " years" << std::endl;
+    std::cout << std::endl;
 }
