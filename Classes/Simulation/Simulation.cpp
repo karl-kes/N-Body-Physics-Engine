@@ -1,6 +1,6 @@
 #include "Simulation.hpp"
 
-Simulation::Simulation( std::size_t num_particles, std::size_t steps, std::size_t output_interval )
+Simulation::Simulation( std::size_t const num_particles, std::size_t const steps, std::size_t const output_interval )
 : particles_{ num_particles }
 , forces_{}
 , integrator_{ nullptr }
@@ -10,10 +10,10 @@ Simulation::Simulation( std::size_t num_particles, std::size_t steps, std::size_
 { }
 
 void Simulation::run() {
-    double inital_energy{ total_energy() };
+    double const inital_energy{ total_energy() };
     double max_energy{ inital_energy };
 
-    auto start_time{ std::chrono::high_resolution_clock::now() };
+    auto const start_time{ std::chrono::high_resolution_clock::now() };
 
     for ( std::size_t curr_step{}; curr_step < steps(); ++curr_step ) {
         integrator()->integrate( particles(), forces() );
@@ -23,10 +23,10 @@ void Simulation::run() {
     }
     std::cout << "\rProgress: 100%" << std::flush;
 
-    auto end_time{ std::chrono::high_resolution_clock::now() };
-    auto duration{ std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ) };
+    auto const end_time{ std::chrono::high_resolution_clock::now() };
+    auto const duration{ std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ) };
 
-    double drift{ std::abs( 100.0 * ( max_energy - inital_energy ) / inital_energy ) };
+    double const drift{ std::abs( 100.0 * ( max_energy - inital_energy ) / inital_energy ) };
     std::cout << "\nMax Energy Drift: " << std::scientific << std::setprecision( 6 ) << drift << "%" << std::endl;
     std::cout << "Duration of Simulation: " << duration.count() << " ms" << std::endl;
 }
@@ -78,7 +78,7 @@ void Simulation::final_output( Body const *bodies ) const {
         double const dist_y{ particles().pos_y(i) - particles().pos_y(0) };
         double const dist_z{ particles().pos_z(i) - particles().pos_z(0) };
 
-        double R{ std::sqrt( dist_x*dist_x + dist_y*dist_y + dist_z*dist_z ) };
+        double const R{ std::sqrt( dist_x*dist_x + dist_y*dist_y + dist_z*dist_z ) };
 
         std::cout << std::left << std::setw( 10 ) << bodies[i].name
                   << std::fixed << std::setprecision( 4 )

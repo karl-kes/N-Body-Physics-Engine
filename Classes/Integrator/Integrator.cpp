@@ -34,7 +34,7 @@ void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_p
     }
 }
 
-Yoshida::Yoshida( double dt )
+Yoshida::Yoshida( double const dt )
 : Integrator{ dt, "Yoshida" }
 , w_0_{ -cbrt_2() / ( 2.0 - cbrt_2() ) }
 , w_1_{ 1.0 / ( 2.0 - cbrt_2() ) }
@@ -50,7 +50,7 @@ Yoshida::Yoshida( double dt )
 void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const {
     std::size_t const N{ particles.num_particles() };
 
-    auto calculate_pos = [&]( double c ){
+    auto calculate_pos = [&]( double const c ){
         #pragma omp parallel for schedule( static )
         for ( std::size_t i = 0; i < N; ++i ) {
             particles.pos_x()[i] += c * dt() * particles.vel_x()[i];
@@ -72,7 +72,7 @@ void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force
         };
     };
 
-    auto calculate_vel = [&]( double d ){
+    auto calculate_vel = [&]( double const d ){
         #pragma omp parallel for schedule( static )
         for ( std::size_t i = 0; i < N; ++i ) {
             particles.vel_x()[i] += d * dt() * particles.acc_x()[i];

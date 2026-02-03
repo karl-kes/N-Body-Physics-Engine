@@ -38,7 +38,7 @@ private:
     double d_1_, d_2_, d_3_;
 
 public:
-    Yoshida( double dt = 1.0 );
+    Yoshida( double const dt = 1.0 );
     void integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const override;
 
     [[nodiscard]] double cbrt_2() const { return cbrt_2_; }
