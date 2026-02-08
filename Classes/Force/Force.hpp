@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Particle/Particle.hpp"
-#include "../../Constants.hpp"
+#include "../../Config.hpp"
 
 #define INLINE __forceinline
 

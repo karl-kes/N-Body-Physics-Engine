@@ -14,19 +14,24 @@ int main() {
     /*
         To compile and run:
 
-        python jpl_compare.py fetch --moons --start 2025-01-01 --years 100 --step "8766h"
-        g++ -std=c++17 -O3 -march=native *.cpp Classes/Force/*.cpp Classes/Integrator/*.cpp Classes/Particle/*.cpp Classes/Simulation/*.cpp -o main.exe
+        python jpl_compare.py fetch --moons
+        g++ -std=c++17 -O3 -march=native -ffast-math -fopenmp *.cpp Classes/Force/*.cpp Classes/Integrator/*.cpp Classes/Particle/*.cpp Classes/Simulation/*.cpp -o main.exe
         ./main.exe
-        python jpl_compare.py compare --sim sim_output.csv
+        python jpl_compare.py compare
+
+        Config lives in Config.hpp:
+            dt           = integration timestep (seconds)
+            num_years    = simulation duration
+            output_hours = output interval in hours
     */
 
     // Determine number of bodies:
     static constexpr std::size_t num_bodies{ sizeof(bodies) / sizeof(bodies[0]) };
 
     // Initialize and prepare simulation:
-    Simulation sim{ num_bodies, constant::total_steps, constant::output_interval };
+    Simulation sim{ num_bodies, config::total_steps, config::output_interval };
     sim.add_force( std::make_unique<Gravity>() );
-    sim.set_integrator( std::make_unique<Yoshida>( constant::dt ) );
+    sim.set_integrator( std::make_unique<Yoshida>( config::dt ) );
     initialize_bodies( sim.particles(), num_bodies );
 
     // Run simulation:

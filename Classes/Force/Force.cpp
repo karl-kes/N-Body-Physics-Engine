@@ -28,7 +28,7 @@ void INLINE Gravity::compute_forces (
     double f_y{ G_mj_R_inv_cb * dy };
     double f_z{ G_mj_R_inv_cb * dz };
 
-    if ( constant::ENABLE_PN ) {
+    if ( config::ENABLE_PN ) {
         double const v_sq_i{ vxi*vxi + vyi*vyi + vzi*vzi };
         double const r_dot_v_i{ dx*vxi + dy*vyi + dz*vzi };
         double const coef_i{ G * mj * R_inv * R_inv * R_inv / c_sq };
@@ -62,10 +62,10 @@ void Gravity::apply( Particles &particles ) const {
 
     double const* RESTRICT mass{ particles.mass().get() };
 
-    constexpr double eps_sq{ constant::EPS * constant::EPS };
-    constexpr double G{ constant::G };
-    constexpr double c_sq{ constant::C_SQ };
-    constexpr double OMP_THRESHOLD{ constant::OMP_THRESHOLD };
+    constexpr double eps_sq{ config::EPS * config::EPS };
+    constexpr double G{ config::G };
+    constexpr double c_sq{ config::C_SQ };
+    constexpr double OMP_THRESHOLD{ config::OMP_THRESHOLD };
 
     auto apply_kernel = [=]( std::size_t i ) {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };

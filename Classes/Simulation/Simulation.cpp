@@ -16,22 +16,20 @@ void Simulation::run() {
     double max_energy{ initial_energy };
     double min_energy{ initial_energy };
 
-    CSV_Output csv{ "sim_output.csv" };
+    CSV_Output csv{ "Validation/sim_output.csv" };
     csv.write( particles(), bodies, num_bodies(), 0, 0.0 );
 
     auto const start_time{ std::chrono::high_resolution_clock::now() };
 
-    for ( std::size_t curr_step{ 1 }; curr_step <= steps(); ++curr_step ) {
+    for ( std::size_t curr_step{1}; curr_step <= steps(); ++curr_step ) {
         integrator()->integrate( particles(), forces() );
 
-        if ( curr_step % ( constant::steps_per_year / 12 ) == 0 ) {
+        if ( curr_step % output_interval() == 0 ) {
             double const E{ total_energy() };
             max_energy = std::max( E, max_energy );
             min_energy = std::min( E, min_energy );
-        }
 
-        if ( curr_step % output_interval() == 0 ) {
-            csv.write( particles(), bodies, num_bodies(), curr_step, curr_step * constant::dt );
+            csv.write( particles(), bodies, num_bodies(), curr_step, curr_step * config::dt );
             print_progress( curr_step, steps() );
         }
     }
@@ -64,9 +62,9 @@ double Simulation::total_energy() const {
     double const* RESTRICT vz{ particles().vel_z().get() };
     double const* RESTRICT mass{ particles().mass().get() };
 
-    constexpr double eps_sq{ constant::EPS * constant::EPS };
-    constexpr double G{ constant::G };
-    constexpr double OMP_THRESHOLD{ constant::OMP_THRESHOLD };
+    constexpr double eps_sq{ config::EPS * config::EPS };
+    constexpr double G{ config::G };
+    constexpr double OMP_THRESHOLD{ config::OMP_THRESHOLD };
 
     double kinetic_energy{};
     auto kinetic_kernel = [=]( std::size_t i ) -> double {
@@ -125,13 +123,7 @@ void Simulation::initial_output() {
     std::cout << "\n<--- Solar System Simulation --->" << std::endl;
     std::cout << "Bodies: " << num_bodies() << std::endl;
     std::cout << "Integrator: " << integrator()->name() << std::endl;
-    std::cout << "Duration: " << constant::num_years << " years" << std::endl;
-    std::cout << "Post-Newtonian: " << ( constant::ENABLE_PN ? "Enabled" : "Disabled" ) << std::endl;
+    std::cout << "Duration: " << config::num_years << " years" << std::endl;
+    std::cout << "Post-Newtonian: " << ( config::ENABLE_PN ? "Enabled" : "Disabled" ) << std::endl;
     std::cout << std::endl;
-}
-
-void Simulation::output_positions( Body const *bodies, std::size_t const curr_time ) const {
-    std::size_t const size{ sizeof(bodies) / sizeof(bodies[0]) };
-
-
 }

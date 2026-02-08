@@ -3,7 +3,7 @@
 #include "../Particle/Particle.hpp"
 #include "../Force/Force.hpp"
 #include "../Integrator/Integrator.hpp"
-#include "../../Constants.hpp"
+#include "../../Config.hpp"
 #include "../../Body.hpp"
 #include "../../Output.hpp"
 
@@ -55,6 +55,5 @@ public:
     void run();
     void add_force( std::unique_ptr<Force> force );
     void set_integrator( std::unique_ptr<Integrator> sim_integrator );
-    void output_positions( Body const *bodies, std::size_t const curr_time ) const;
     void initial_output();
 };

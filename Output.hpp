@@ -17,17 +17,17 @@ public:
     }
 
     void write(
-        Particles const &p,
-        Body const *b,
-        std::size_t const n,
+        Particles const &particles,
+        Body const *bodies,
+        std::size_t const num,
         std::size_t const step,
-        double const t ) {
+        double const time ) {
 
-        for (std::size_t i = 0; i < n; ++i) {
-            file_ << step << "," << std::fixed << std::setprecision(2) << t << ","
-               << b[i].name << "," << std::scientific << std::setprecision(12)
-               << p.pos_x(i) << "," << p.pos_y(i) << "," << p.pos_z(i) << ","
-               << p.vel_x(i) << "," << p.vel_y(i) << "," << p.vel_z(i) << "\n";
+        for (std::size_t i = 0; i < num; ++i) {
+            file_ << step << "," << std::fixed << std::setprecision(2) << time << ","
+               << bodies[i].name << "," << std::scientific << std::setprecision(12)
+               << particles.pos_x(i) << "," << particles.pos_y(i) << "," << particles.pos_z(i) << ","
+               << particles.vel_x(i) << "," << particles.vel_y(i) << "," << particles.vel_z(i) << "\n";
         }
         file_.flush();
     }

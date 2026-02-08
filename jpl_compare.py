@@ -1,17 +1,28 @@
-import argparse, csv, json, sys, time, urllib.request, urllib.parse
+import argparse, csv, json, re, sys, time, urllib.request, urllib.parse
 import numpy as np
 from pathlib import Path
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-# Usage:
-# python jpl_compare.py fetch --moons --start [date] --years [num_years] --step "8766h"
-# python jpl_compare.py fetch --moons --start 2025-01-01 --years 100 --step "8766h"
-# python jpl_compare.py compare --sim sim_output.csv
+# Usage (reads config from Config.hpp automatically):
+# python jpl_compare.py fetch --moons
+# python jpl_compare.py compare
 
 AU_KM = 1.496e8
 SEC_PER_YR = 365.25 * 86400.0
 G_KM3 = 6.6743e-20
+
+def read_config(path="Config.hpp"):
+    """Read output_hours and num_years from Config.hpp"""
+    text = Path(path).read_text()
+    cfg = {}
+    for name in ["output_hours", "num_years"]:
+        m = re.search(rf'{name}\{{\s*(\d+)\s*\}}', text)
+        if not m:
+            print(f"ERROR: Could not find '{name}' in {path}")
+            sys.exit(1)
+        cfg[name] = int(m.group(1))
+    return cfg
 
 PLANETS = [
     ("10",  "Sun",     1.32712440041e11, None),
@@ -54,7 +65,8 @@ MOONS = [
     ("901", "Charon",    1.0588e2,   "Pluto"),
 ]
 
-# Horizons:
+# Horizons API:
+
 API = "https://ssd.jpl.nasa.gov/api/horizons.api"
 
 def fetch_vectors(body_id, start, stop, step):
@@ -92,18 +104,24 @@ def parse_vectors(text):
     return records
 
 # Fetch:
+
 def cmd_fetch(args):
+    cfg = read_config()
+    step = f"{cfg['output_hours']}h"
+    years = cfg["num_years"]
+
     bodies = PLANETS + (MOONS if args.moons else [])
     stop = (datetime.strptime(args.start, "%Y-%m-%d") +
-            timedelta(days=args.years * 365.25)).strftime("%Y-%m-%d")
+            timedelta(days=years * 365.25)).strftime("%Y-%m-%d")
 
-    print(f"Fetching {len(bodies)} bodies: {args.start} -> {stop}, step={args.step}")
+    print(f"Config: num_years={years}, output_hours={cfg['output_hours']} -> step={step}")
+    print(f"Fetching {len(bodies)} bodies: {args.start} -> {stop}\n")
     data = {}
 
     for i, (bid, name, gm, parent) in enumerate(bodies):
         print(f"  [{i+1}/{len(bodies)}] {name}...", end=" ", flush=True)
         try:
-            recs = parse_vectors(fetch_vectors(bid, args.start, stop, args.step))
+            recs = parse_vectors(fetch_vectors(bid, args.start, stop, step))
             data[name] = {"id": bid, "gm": gm, "mass": gm/G_KM3,
                           "parent": parent, "states": recs}
             print(f"{len(recs)} epochs")
@@ -114,8 +132,11 @@ def cmd_fetch(args):
     if not data:
         print("No data fetched."); return
 
+    # Ensure validation directory exists
+    Path("validation").mkdir(exist_ok=True)
+
     with open("Body.hpp", "w") as f:
-        f.write('#pragma once\n#include "Classes/Particle/Particle.hpp"\n#include "Constants.hpp"\n\n')
+        f.write('#pragma once\n#include "Classes/Particle/Particle.hpp"\n#include "Config.hpp"\n\n')
         f.write("struct Body {\n    const char* name;\n    double mass;\n")
         f.write("    double x, y, z;\n    double v_x, v_y, v_z;\n};\n\n")
         f.write(f"// JPL Horizons | {list(data.values())[0]['states'][0]['date']}\n")
@@ -132,26 +153,26 @@ def cmd_fetch(args):
         f.write("    for ( std::size_t i{}; i < num_bodies; ++i ) {\n")
         for attr, field in [("mass","mass"),("pos_x","x"),("pos_y","y"),("pos_z","z"),
                             ("vel_x","v_x"),("vel_y","v_y"),("vel_z","v_z")]:
-            mult = " * constant::KM_TO_M" if attr != "mass" else ""
+            mult = " * config::KM_TO_M" if attr != "mass" else ""
             f.write(f'        particles.{attr}()[i] = bodies[i].{field}{mult};\n')
         for a in ["acc_x","acc_y","acc_z"]:
             f.write(f'        particles.{a}()[i] = 0.0;\n')
         f.write("    }\n}\n")
-    print(f"-> Body.hpp ({len(data)} bodies)")
+    print(f"\n-> Body.hpp ({len(data)} bodies)")
 
-    with open("jpl_reference.csv", "w") as f:
+    with open("validation/jpl_reference.csv", "w") as f:
         f.write("name,jd,date,x_km,y_km,z_km,vx_kms,vy_kms,vz_kms\n")
         for n, d in data.items():
             for s in d["states"]:
                 f.write(f'{n},{s["jd"]:.6f},{s["date"]},'
                         f'{s["x"]:.10e},{s["y"]:.10e},{s["z"]:.10e},'
                         f'{s["vx"]:.10e},{s["vy"]:.10e},{s["vz"]:.10e}\n')
-    print(f"-> jpl_reference.csv")
+    print(f"-> validation/jpl_reference.csv")
 
     cat = {n: {"id":d["id"],"mass_kg":d["mass"],"gm":d["gm"],"parent":d["parent"],
                "epochs":len(d["states"])} for n,d in data.items()}
-    Path("body_catalog.json").write_text(json.dumps(cat, indent=2))
-    print(f"-> body_catalog.json")
+    Path("validation/body_catalog.json").write_text(json.dumps(cat, indent=2))
+    print(f"-> validation/body_catalog.json")
 
 # Compare:
 
@@ -215,13 +236,11 @@ def main():
 
     f = sub.add_parser("fetch")
     f.add_argument("--start", default="2025-01-01")
-    f.add_argument("--years", type=int, default=100)
-    f.add_argument("--step", default="8766h")
     f.add_argument("--moons", action="store_true")
 
     c = sub.add_parser("compare")
-    c.add_argument("--sim", required=True)
-    c.add_argument("--ref", default="jpl_reference.csv")
+    c.add_argument("--sim", default="validation/sim_output.csv")
+    c.add_argument("--ref", default="validation/jpl_reference.csv")
     c.add_argument("--bodies", default=None)
 
     args = p.parse_args()

@@ -9,7 +9,7 @@ Velocity_Verlet::Velocity_Verlet( double dt )
 void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const {
     std::size_t const N{ particles.num_particles() };
 
-    #pragma omp parallel for schedule( static ) if ( N >= 2 * constant::OMP_THRESHOLD )
+    #pragma omp parallel for schedule( static ) if ( N >= 2 * config::OMP_THRESHOLD )
     for ( std::size_t i = 0; i < N; ++i ) {
         particles.pos_x()[i] += dt() * ( particles.vel_x()[i] + 0.5 * particles.acc_x()[i] * dt() );
         particles.pos_y()[i] += dt() * ( particles.vel_y()[i] + 0.5 * particles.acc_y()[i] * dt() );
@@ -28,7 +28,7 @@ void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_p
         force->apply( particles );
     }
 
-    #pragma omp parallel for schedule( static ) if ( N >= 2 * constant::OMP_THRESHOLD )
+    #pragma omp parallel for schedule( static ) if ( N >= 2 * config::OMP_THRESHOLD )
     for ( std::size_t i = 0; i < N; ++i ) {
         particles.vel_x()[i] += 0.5 * ( particles.old_acc_x()[i] + particles.acc_x()[i] ) * dt();
         particles.vel_y()[i] += 0.5 * ( particles.old_acc_y()[i] + particles.acc_y()[i] ) * dt();
