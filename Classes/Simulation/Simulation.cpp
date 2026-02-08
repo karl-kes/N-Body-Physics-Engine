@@ -125,5 +125,6 @@ void Simulation::initial_output() {
     std::cout << "Integrator: " << integrator()->name() << std::endl;
     std::cout << "Duration: " << config::num_years << " years" << std::endl;
     std::cout << "Post-Newtonian: " << ( config::ENABLE_PN ? "Enabled" : "Disabled" ) << std::endl;
+    std::cout << "Parallelization: " << ( ( config::OMP_THRESHOLD <= num_bodies() ) ? "Enabled" : "Disabled" ) << std::endl;
     std::cout << std::endl;
 }

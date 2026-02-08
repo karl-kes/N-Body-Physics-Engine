@@ -18,6 +18,7 @@ int main() {
         g++ -std=c++17 -O3 -march=native -ffast-math -fopenmp *.cpp Classes/Force/*.cpp Classes/Integrator/*.cpp Classes/Particle/*.cpp Classes/Simulation/*.cpp -o main.exe
         ./main.exe
         python jpl_compare.py compare
+        python visualize.py
 
         Config lives in Config.hpp:
             dt           = integration timestep (seconds)
