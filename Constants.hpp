@@ -17,7 +17,7 @@ namespace constant {
     inline static constexpr double SECONDS_PER_YEAR{ SECONDS_PER_DAY * DAYS_PER_YEAR };
 
     // Parameters:
-    inline static constexpr double dt{ SECONDS_PER_HOUR };
+    inline static constexpr double dt{ 360 }; // s
     inline static constexpr std::size_t steps_per_year{ static_cast<std::size_t>( SECONDS_PER_YEAR / dt ) };
     inline static constexpr std::size_t num_years{ 100 };
     inline static constexpr std::size_t total_steps{ steps_per_year * num_years };

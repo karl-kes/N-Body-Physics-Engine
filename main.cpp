@@ -13,8 +13,11 @@
 int main() {
     /*
         To compile and run:
+
+        python jpl_compare.py fetch --moons --start 2025-01-01 --years 100 --step "8766h"
         g++ -std=c++17 -O3 -march=native *.cpp Classes/Force/*.cpp Classes/Integrator/*.cpp Classes/Particle/*.cpp Classes/Simulation/*.cpp -o main.exe
         ./main.exe
+        python jpl_compare.py compare --sim sim_output.csv
     */
 
     // Determine number of bodies:
@@ -29,7 +32,6 @@ int main() {
     // Run simulation:
     sim.initial_output();
     sim.run();
-    sim.final_output( bodies );
 
     return 0;
 }

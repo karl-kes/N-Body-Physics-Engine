@@ -16,9 +16,12 @@ void Simulation::run() {
     double max_energy{ initial_energy };
     double min_energy{ initial_energy };
 
+    CSV_Output csv{ "sim_output.csv" };
+    csv.write( particles(), bodies, num_bodies(), 0, 0.0 );
+
     auto const start_time{ std::chrono::high_resolution_clock::now() };
 
-    for ( std::size_t curr_step{}; curr_step < steps(); ++curr_step ) {
+    for ( std::size_t curr_step{ 1 }; curr_step <= steps(); ++curr_step ) {
         integrator()->integrate( particles(), forces() );
 
         if ( curr_step % ( constant::steps_per_year / 12 ) == 0 ) {
@@ -26,7 +29,11 @@ void Simulation::run() {
             max_energy = std::max( E, max_energy );
             min_energy = std::min( E, min_energy );
         }
-        if ( curr_step % output_interval() == 0 ) { print_progress( curr_step, steps() ); }
+
+        if ( curr_step % output_interval() == 0 ) {
+            csv.write( particles(), bodies, num_bodies(), curr_step, curr_step * constant::dt );
+            print_progress( curr_step, steps() );
+        }
     }
     std::cout << "\rProgress: 100%" << std::flush;
 
@@ -61,13 +68,13 @@ double Simulation::total_energy() const {
     constexpr double G{ constant::G };
     constexpr double OMP_THRESHOLD{ constant::OMP_THRESHOLD };
 
-    double kinetic_energy{ 0.0 };
+    double kinetic_energy{};
     auto kinetic_kernel = [=]( std::size_t i ) -> double {
         double const v_sq{ vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i] };
         return 0.5 * mass[i] * v_sq;
     };
 
-    double potential_energy{ 0.0 };
+    double potential_energy{};
     auto potential_kernel = [=]( std::size_t i ) -> double {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };
         double const mi{ mass[i] };
@@ -103,34 +110,19 @@ double Simulation::total_energy() const {
     if ( N >= OMP_THRESHOLD ) {
         #pragma omp parallel for reduction( +:potential_energy ) schedule( guided )
         for ( std::size_t i = 0; i < N; ++i ) {
-            potential_energy += potential_kernel( i );
+            potential_energy += potential_kernel(i);
         }
     } else {
         for ( std::size_t i = 0; i < N; ++i ) {
-            potential_energy += potential_kernel( i );
+            potential_energy += potential_kernel(i);
         }
     }
 
     return kinetic_energy + potential_energy;
 }
 
-void Simulation::final_output( Body const *bodies ) const {
-    std::cout << "\nFinal distances from Sun:" << std::endl;
-    for ( std::size_t i{ 1 }; i < num_bodies(); ++i ) {
-        double const dist_x{ particles().pos_x(i) - particles().pos_x(0) };
-        double const dist_y{ particles().pos_y(i) - particles().pos_y(0) };
-        double const dist_z{ particles().pos_z(i) - particles().pos_z(0) };
-
-        double const R{ std::sqrt( dist_x*dist_x + dist_y*dist_y + dist_z*dist_z ) };
-
-        std::cout << std::left << std::setw( 10 ) << bodies[i].name
-                  << std::fixed << std::setprecision( 4 )
-                  << R / constant::AU << " AU" << std::endl;
-    }
-}
-
 void Simulation::initial_output() {
-    std::cout << "<--- Solar System Simulation --->" << std::endl;
+    std::cout << "\n<--- Solar System Simulation --->" << std::endl;
     std::cout << "Bodies: " << num_bodies() << std::endl;
     std::cout << "Integrator: " << integrator()->name() << std::endl;
     std::cout << "Duration: " << constant::num_years << " years" << std::endl;

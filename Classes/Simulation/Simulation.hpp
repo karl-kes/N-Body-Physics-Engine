@@ -5,6 +5,7 @@
 #include "../Integrator/Integrator.hpp"
 #include "../../Constants.hpp"
 #include "../../Body.hpp"
+#include "../../Output.hpp"
 
 #include <memory>
 #include <vector>
@@ -55,6 +56,5 @@ public:
     void add_force( std::unique_ptr<Force> force );
     void set_integrator( std::unique_ptr<Integrator> sim_integrator );
     void output_positions( Body const *bodies, std::size_t const curr_time ) const;
-    void final_output( Body const *bodies ) const;
     void initial_output();
 };
