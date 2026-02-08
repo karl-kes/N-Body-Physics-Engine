@@ -21,10 +21,9 @@ namespace config {
 
     // USER CONFIG - change these, everything else adapts:
 
-    inline static constexpr double dt{ 360.0 };              // Integration timestep (seconds)
+    inline static constexpr double dt{ 3600.0 };              // Integration timestep (seconds)
     inline static constexpr std::size_t num_years{ 100 };    // Simulation duration (years)
     inline static constexpr std::size_t output_hours{ 487 }; // Output every N hours (must match JPL --step)
-    inline static constexpr bool ENABLE_PN{ true };          // Post-Newtonian General Relativity correction
 
     // DERIVED - do not edit these:
 

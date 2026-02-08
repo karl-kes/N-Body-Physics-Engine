@@ -28,18 +28,6 @@ void INLINE Gravity::compute_forces (
     double f_y{ G_mj_R_inv_cb * dy };
     double f_z{ G_mj_R_inv_cb * dz };
 
-    double const PN_Mask{ config::ENABLE_PN ? 1.0 : 0.0 };
-    
-    double const v_sq_i{ vxi*vxi + vyi*vyi + vzi*vzi };
-    double const r_dot_v_i{ dx*vxi + dy*vyi + dz*vzi };
-    double const coef_i{ G * mj * R_inv * R_inv * R_inv / c_sq };
-    double const rad_term_i{ 4.0 * G * mj * R_inv - v_sq_i };
-    double const vel_term_i{ 4.0 * r_dot_v_i * R_inv };
-
-    f_x += PN_Mask * coef_i * ( rad_term_i * dx + vel_term_i * vxi );
-    f_y += PN_Mask * coef_i * ( rad_term_i * dy + vel_term_i * vyi );
-    f_z += PN_Mask * coef_i * ( rad_term_i * dz + vel_term_i * vzi );
-
     a_xi += mask * f_x;
     a_yi += mask * f_y;
     a_zi += mask * f_z;
@@ -95,11 +83,11 @@ void Gravity::apply( Particles &particles ) const {
     if ( N >= OMP_THRESHOLD ) {
         #pragma omp parallel for schedule( static )
         for ( std::size_t i = 0; i < N; ++i ) {
-            apply_kernel( i );
+            apply_kernel(i);
         }
     } else {
         for ( std::size_t i = 0; i < N; ++i ) {
-            apply_kernel( i );
+            apply_kernel(i);
         }
     }
 }

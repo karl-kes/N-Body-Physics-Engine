@@ -24,13 +24,15 @@ void Simulation::run() {
     for ( std::size_t curr_step{1}; curr_step <= steps(); ++curr_step ) {
         integrator()->integrate( particles(), forces() );
 
-        if ( curr_step % output_interval() == 0 ) {
+        if ( curr_step % ( 10*output_interval() ) == 0 ) {
             double const E{ total_energy() };
             max_energy = std::max( E, max_energy );
             min_energy = std::min( E, min_energy );
-
-            csv.write( particles(), bodies, num_bodies(), curr_step, curr_step * config::dt );
             print_progress( curr_step, steps() );
+        }
+
+        if ( curr_step % output_interval() == 0 ) {
+            csv.write( particles(), bodies, num_bodies(), curr_step, curr_step * config::dt );
         }
     }
     std::cout << "\rProgress: 100%" << std::flush;
@@ -124,7 +126,6 @@ void Simulation::initial_output() {
     std::cout << "Bodies: " << num_bodies() << std::endl;
     std::cout << "Integrator: " << integrator()->name() << std::endl;
     std::cout << "Duration: " << config::num_years << " years" << std::endl;
-    std::cout << "Post-Newtonian: " << ( config::ENABLE_PN ? "Enabled" : "Disabled" ) << std::endl;
     std::cout << "Parallelization: " << ( ( config::OMP_THRESHOLD <= num_bodies() ) ? "Enabled" : "Disabled" ) << std::endl;
     std::cout << std::endl;
 }
