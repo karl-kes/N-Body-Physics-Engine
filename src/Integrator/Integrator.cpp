@@ -25,7 +25,7 @@ void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_p
 
     double const dt_local{ dt() };
 
-    #pragma omp parallel for schedule( static ) if ( N >= 2 * config::OMP_THRESHOLD )
+    #pragma omp parallel for schedule( static ) if ( N >= config::OMP_THRESHOLD )
     for ( std::size_t i = 0; i < N; ++i ) {
         px[i] += dt_local * ( vx[i] + 0.5 * ax[i] * dt_local );
         py[i] += dt_local * ( vy[i] + 0.5 * ay[i] * dt_local );

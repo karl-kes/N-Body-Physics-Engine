@@ -3,32 +3,6 @@
 Gravity::Gravity()
 { }
 
-void Gravity::compute_forces (
-        double const pxi, double const pyi, double const pzi, double const mi,
-        double const pxj, double const pyj, double const pzj, double const mj,
-        double &a_xi, double &a_yi, double &a_zi,
-        double const G, double const eps_sq, double const mask
-    ) {
-
-    double const dx{ pxj - pxi };
-    double const dy{ pyj - pyi };
-    double const dz{ pzj - pzi };
-
-    double const R_sq{ dx*dx + dy*dy + dz*dz + eps_sq };
-    double const R_inv{ 1.0 / std::sqrt( R_sq ) };
-    double const R_inv_cb{ R_inv * R_inv * R_inv };
-
-    double const G_mj_R_inv_cb{ G * mj * R_inv_cb };
-
-    double f_x{ G_mj_R_inv_cb * dx };
-    double f_y{ G_mj_R_inv_cb * dy };
-    double f_z{ G_mj_R_inv_cb * dz };
-
-    a_xi += mask * f_x;
-    a_yi += mask * f_y;
-    a_zi += mask * f_z;
-}
-
 void Gravity::apply( Particles &particles ) const {
     std::size_t const N{ particles.num_particles() };
 
@@ -48,8 +22,6 @@ void Gravity::apply( Particles &particles ) const {
 
     constexpr double eps_sq{ config::EPS * config::EPS };
     constexpr double G{ config::G };
-    constexpr double c_sq{ config::C_SQ };
-    constexpr double OMP_THRESHOLD{ config::OMP_THRESHOLD };
 
     auto apply_kernel = [=]( std::size_t i ) {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };
@@ -75,7 +47,7 @@ void Gravity::apply( Particles &particles ) const {
         az[i] += a_zi;
     };
 
-    if ( N >= OMP_THRESHOLD ) {
+    if ( N >= config::OMP_THRESHOLD ) {
         #pragma omp parallel for schedule( static )
         for ( std::size_t i = 0; i < N; ++i ) {
             apply_kernel(i);

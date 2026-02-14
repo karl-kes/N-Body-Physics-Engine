@@ -26,7 +26,7 @@ protected:
 public:
     Integrator( double dt, std::string const &name ) 
     : dt_{ dt }
-    , name_{name }
+    , name_{ name }
     { }
     
     virtual ~Integrator() = default;
