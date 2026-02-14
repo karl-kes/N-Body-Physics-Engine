@@ -1,7 +1,5 @@
 #include "Simulation.hpp"
 
-#define RESTRICT __restrict
-
 Simulation::Simulation( std::size_t const num_particles, std::size_t const steps, std::size_t const output_interval )
 : particles_{ num_particles }
 , forces_{}
@@ -16,7 +14,7 @@ void Simulation::run() {
     double max_energy{ initial_energy };
     double min_energy{ initial_energy };
 
-    CSV_Output csv{ "Validation/sim_output.csv" };
+    CSV_Output csv{ "src/validation/sim_output.csv" };
     csv.write( particles(), bodies, num_bodies(), 0, 0.0 );
 
     auto const start_time{ std::chrono::high_resolution_clock::now() };

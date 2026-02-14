@@ -55,7 +55,7 @@ def load(path):
     return data
 
 
-def read_config(path="Config.hpp"):
+def read_config(path="src/Config.hpp"):
     try:
         text = Path(path).read_text()
         m = re.search(r'num_years\{\s*(\d+)\s*\}', text)
@@ -66,7 +66,7 @@ def read_config(path="Config.hpp"):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--sim", default="validation/sim_output.csv")
+    p.add_argument("--sim", default="src/validation/sim_output.csv")
     p.add_argument("--speed", type=float, default=1.0)
     args = p.parse_args()
 

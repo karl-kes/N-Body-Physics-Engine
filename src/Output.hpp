@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Body.hpp"
-#include "Classes/Particle/Particle.hpp"
+#include "Particle/Particle.hpp"
 
 #include <fstream>
 #include <iomanip>

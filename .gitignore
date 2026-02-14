@@ -2,4 +2,6 @@
 *.json
 *.csv
 .vscode
-Body.hpp
+src/Body.hpp
+src/Validation
+build

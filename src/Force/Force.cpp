@@ -1,17 +1,13 @@
 #include "Force.hpp"
 
-#define RESTRICT __restrict
-
 Gravity::Gravity()
 { }
 
-void INLINE Gravity::compute_forces (
+void Gravity::compute_forces (
         double const pxi, double const pyi, double const pzi, double const mi,
-        double const vxi, double const vyi, double const vzi,
         double const pxj, double const pyj, double const pzj, double const mj,
-        double const vxj, double const vyj, double const vzj,
         double &a_xi, double &a_yi, double &a_zi,
-        double const G, double const eps_sq, double const c_sq, double const mask
+        double const G, double const eps_sq, double const mask
     ) {
 
     double const dx{ pxj - pxi };
@@ -67,11 +63,10 @@ void Gravity::apply( Particles &particles ) const {
             double const mask{ ( i == j ) ? 0.0 : 1.0 };
 
             compute_forces (
-                pxi, pyi, pzi, mi, vxi, vyi, vzi,
+                pxi, pyi, pzi, mi,
                 px[j], py[j], pz[j], mass[j],
-                vx[j], vy[j], vz[j],
                 a_xi, a_yi, a_zi,
-                G, eps_sq, c_sq, mask
+                G, eps_sq, mask
             );
         }
 

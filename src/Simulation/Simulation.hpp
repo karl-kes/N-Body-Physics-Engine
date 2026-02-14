@@ -3,9 +3,9 @@
 #include "../Particle/Particle.hpp"
 #include "../Force/Force.hpp"
 #include "../Integrator/Integrator.hpp"
-#include "../../Config.hpp"
-#include "../../Body.hpp"
-#include "../../Output.hpp"
+#include "../Config.hpp"
+#include "../Body.hpp"
+#include "../Output.hpp"
 
 #include <memory>
 #include <vector>
@@ -14,6 +14,14 @@
 #include <cmath>
 #include <chrono>
 #include <omp.h>
+
+#if defined(__GNUC__) || defined(__clang__)
+    #define RESTRICT __restrict__
+#elif defined(_MSC_VER)
+    #define RESTRICT __restrict
+#else
+    #define RESTRICT
+#endif
 
 class Simulation {
 private:

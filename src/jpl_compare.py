@@ -15,7 +15,7 @@ AU_KM = 1.496e8
 SEC_PER_YR = 365.25 * 86400.0
 G_KM3 = 6.6743e-20
 
-def read_config(path="Config.hpp"):
+def read_config(path="src/Config.hpp"):
     """Read output_hours and num_years from Config.hpp"""
     text = Path(path).read_text()
     cfg = {}
@@ -136,10 +136,10 @@ def cmd_fetch(args):
         print("No data fetched."); return
 
     # Ensure validation directory exists
-    Path("validation").mkdir(exist_ok=True)
+    Path("src/validation").mkdir(exist_ok=True)
 
     with open("Body.hpp", "w") as f:
-        f.write('#pragma once\n#include "Classes/Particle/Particle.hpp"\n#include "Config.hpp"\n\n')
+        f.write('#pragma once\n#include "Particle/Particle.hpp"\n#include "Config.hpp"\n\n')
         f.write("struct Body {\n    const char* name;\n    double mass;\n")
         f.write("    double x, y, z;\n    double v_x, v_y, v_z;\n};\n\n")
         f.write(f"// JPL Horizons | {list(data.values())[0]['states'][0]['date']}\n")
@@ -161,21 +161,21 @@ def cmd_fetch(args):
         for a in ["acc_x","acc_y","acc_z"]:
             f.write(f'        particles.{a}()[i] = 0.0;\n')
         f.write("    }\n}\n")
-    print(f"\n-> Body.hpp ({len(data)} bodies)")
+    print(f"\n-> src/Body.hpp ({len(data)} bodies)")
 
-    with open("validation/jpl_reference.csv", "w") as f:
+    with open("src/validation/jpl_reference.csv", "w") as f:
         f.write("name,jd,date,x_km,y_km,z_km,vx_kms,vy_kms,vz_kms\n")
         for n, d in data.items():
             for s in d["states"]:
                 f.write(f'{n},{s["jd"]:.6f},{s["date"]},'
                         f'{s["x"]:.10e},{s["y"]:.10e},{s["z"]:.10e},'
                         f'{s["vx"]:.10e},{s["vy"]:.10e},{s["vz"]:.10e}\n')
-    print(f"-> validation/jpl_reference.csv")
+    print(f"-> src/validation/jpl_reference.csv")
 
     cat = {n: {"id":d["id"],"mass_kg":d["mass"],"gm":d["gm"],"parent":d["parent"],
                "epochs":len(d["states"])} for n,d in data.items()}
-    Path("validation/body_catalog.json").write_text(json.dumps(cat, indent=2))
-    print(f"-> validation/body_catalog.json")
+    Path("src/validation/body_catalog.json").write_text(json.dumps(cat, indent=2))
+    print(f"-> src/validation/body_catalog.json")
 
 # Compare:
 
@@ -238,12 +238,12 @@ def main():
     sub = p.add_subparsers(dest="cmd")
 
     f = sub.add_parser("fetch")
-    f.add_argument("--start", default="2025-01-01")
+    f.add_argument("--start", default="1950-01-01")
     f.add_argument("--moons", action="store_true")
 
     c = sub.add_parser("compare")
-    c.add_argument("--sim", default="validation/sim_output.csv")
-    c.add_argument("--ref", default="validation/jpl_reference.csv")
+    c.add_argument("--sim", default="src/validation/sim_output.csv")
+    c.add_argument("--ref", default="src/validation/jpl_reference.csv")
     c.add_argument("--bodies", default=None)
 
     args = p.parse_args()

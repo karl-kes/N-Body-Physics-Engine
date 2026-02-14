@@ -1,7 +1,5 @@
 #include "Integrator.hpp"
 
-#define RESTRICT __restrict
-
 Velocity_Verlet::Velocity_Verlet( double dt )
 : Integrator{ dt, "Velocity Verlet" }
 { }
@@ -9,30 +7,48 @@ Velocity_Verlet::Velocity_Verlet( double dt )
 void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const {
     std::size_t const N{ particles.num_particles() };
 
+    double* RESTRICT px{ particles.pos_x().get() };
+    double* RESTRICT py{ particles.pos_y().get() };
+    double* RESTRICT pz{ particles.pos_z().get() };
+
+    double* RESTRICT vx{ particles.vel_x().get() };
+    double* RESTRICT vy{ particles.vel_y().get() };
+    double* RESTRICT vz{ particles.vel_z().get() };
+
+    double* RESTRICT ax{ particles.acc_x().get() };
+    double* RESTRICT ay{ particles.acc_y().get() };
+    double* RESTRICT az{ particles.acc_z().get() };
+
+    double* RESTRICT o_ax{ particles.old_acc_x().get() };
+    double* RESTRICT o_ay{ particles.old_acc_y().get() };
+    double* RESTRICT o_az{ particles.old_acc_z().get() };
+
+    double const dt_local{ dt() };
+
     #pragma omp parallel for schedule( static ) if ( N >= 2 * config::OMP_THRESHOLD )
     for ( std::size_t i = 0; i < N; ++i ) {
-        particles.pos_x()[i] += dt() * ( particles.vel_x()[i] + 0.5 * particles.acc_x()[i] * dt() );
-        particles.pos_y()[i] += dt() * ( particles.vel_y()[i] + 0.5 * particles.acc_y()[i] * dt() );
-        particles.pos_z()[i] += dt() * ( particles.vel_z()[i] + 0.5 * particles.acc_z()[i] * dt() );
+        px[i] += dt_local * ( vx[i] + 0.5 * ax[i] * dt_local );
+        py[i] += dt_local * ( vy[i] + 0.5 * ay[i] * dt_local );
+        pz[i] += dt_local * ( vz[i] + 0.5 * az[i] * dt_local );
 
-        particles.old_acc_x()[i] = particles.acc_x()[i];
-        particles.old_acc_y()[i] = particles.acc_y()[i];
-        particles.old_acc_z()[i] = particles.acc_z()[i];
+        o_ax[i] = ax[i];
+        o_ay[i] = ay[i];
+        o_az[i] = az[i];
 
-        particles.acc_x()[i] = 0.0;
-        particles.acc_y()[i] = 0.0;
-        particles.acc_z()[i] = 0.0;
+        ax[i] = 0.0;
+        ay[i] = 0.0;
+        az[i] = 0.0;
     }
 
     for ( auto const &force : forces ) {
         force->apply( particles );
     }
 
-    #pragma omp parallel for schedule( static ) if ( N >= 2 * config::OMP_THRESHOLD )
+    #pragma omp parallel for schedule( static ) if ( N >= config::OMP_THRESHOLD )
     for ( std::size_t i = 0; i < N; ++i ) {
-        particles.vel_x()[i] += 0.5 * ( particles.old_acc_x()[i] + particles.acc_x()[i] ) * dt();
-        particles.vel_y()[i] += 0.5 * ( particles.old_acc_y()[i] + particles.acc_y()[i] ) * dt();
-        particles.vel_z()[i] += 0.5 * ( particles.old_acc_z()[i] + particles.acc_z()[i] ) * dt();
+        vx[i] += 0.5 * ( o_ax[i] + ax[i] ) * dt_local;
+        vy[i] += 0.5 * ( o_ay[i] + ay[i] ) * dt_local;
+        vz[i] += 0.5 * ( o_az[i] + az[i] ) * dt_local;
     }
 }
 
