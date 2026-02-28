@@ -22,7 +22,7 @@ namespace config {
     // USER CONFIG - change these, everything else adapts:
 
     inline static constexpr double dt{ 360.0 };              // Integration timestep (seconds)
-    inline static constexpr std::size_t num_years{ 249 };    // Simulation duration (years)
+    inline static constexpr std::size_t num_years{ 50 };     // Simulation duration (years)
     inline static constexpr std::size_t output_hours{ 487 }; // Output every N hours (must match JPL --step)
 
     // DERIVED - do not edit these:
@@ -31,7 +31,7 @@ namespace config {
     inline static constexpr std::size_t total_steps{ steps_per_year * num_years };
     inline static constexpr std::size_t output_interval{ static_cast<std::size_t>( output_hours * SECONDS_PER_HOUR / dt ) };
 
-    inline static constexpr double OMP_THRESHOLD{ 500.0 };
+    inline static constexpr std::size_t OMP_THRESHOLD{ 500};
 
     // COMPILE-TIME CHECK - output_interval must divide evenly:
     static_assert (

@@ -54,13 +54,13 @@ void Simulation::set_integrator( std::unique_ptr<Integrator> sim_integrator ) {
 double Simulation::total_energy() const {
     std::size_t const N{ particles().num_particles() };
 
-    double const* RESTRICT px{ particles().pos_x().get() };
-    double const* RESTRICT py{ particles().pos_y().get() };
-    double const* RESTRICT pz{ particles().pos_z().get() };
-    double const* RESTRICT vx{ particles().vel_x().get() };
-    double const* RESTRICT vy{ particles().vel_y().get() };
-    double const* RESTRICT vz{ particles().vel_z().get() };
-    double const* RESTRICT mass{ particles().mass().get() };
+    double const* RESTRICT px{ particles().pos_x() };
+    double const* RESTRICT py{ particles().pos_y() };
+    double const* RESTRICT pz{ particles().pos_z() };
+    double const* RESTRICT vx{ particles().vel_x() };
+    double const* RESTRICT vy{ particles().vel_y() };
+    double const* RESTRICT vz{ particles().vel_z() };
+    double const* RESTRICT mass{ particles().mass() };
 
     constexpr double eps_sq{ config::EPS * config::EPS };
     constexpr double G{ config::G };

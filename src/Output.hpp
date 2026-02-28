@@ -69,12 +69,12 @@ public:
 
         // Per-body state
         for ( std::size_t i = 0; i < num; ++i ) {
-            buffer_.push_back( particles.pos_x(i) );
-            buffer_.push_back( particles.pos_y(i) );
-            buffer_.push_back( particles.pos_z(i) );
-            buffer_.push_back( particles.vel_x(i) );
-            buffer_.push_back( particles.vel_y(i) );
-            buffer_.push_back( particles.vel_z(i) );
+            buffer_.push_back( particles.pos_x()[i] );
+            buffer_.push_back( particles.pos_y()[i] );
+            buffer_.push_back( particles.pos_z()[i] );
+            buffer_.push_back( particles.vel_x()[i] );
+            buffer_.push_back( particles.vel_y()[i] );
+            buffer_.push_back( particles.vel_z()[i] );
         }
 
         file_.write( reinterpret_cast<char const*>( buffer_.data() ),

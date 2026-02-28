@@ -7,21 +7,21 @@ Velocity_Verlet::Velocity_Verlet( double dt )
 void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const {
     std::size_t const N{ particles.num_particles() };
 
-    double* RESTRICT px{ particles.pos_x().get() };
-    double* RESTRICT py{ particles.pos_y().get() };
-    double* RESTRICT pz{ particles.pos_z().get() };
+    double* RESTRICT px{ particles.pos_x() };
+    double* RESTRICT py{ particles.pos_y() };
+    double* RESTRICT pz{ particles.pos_z() };
 
-    double* RESTRICT vx{ particles.vel_x().get() };
-    double* RESTRICT vy{ particles.vel_y().get() };
-    double* RESTRICT vz{ particles.vel_z().get() };
+    double* RESTRICT vx{ particles.vel_x() };
+    double* RESTRICT vy{ particles.vel_y() };
+    double* RESTRICT vz{ particles.vel_z() };
 
-    double* RESTRICT ax{ particles.acc_x().get() };
-    double* RESTRICT ay{ particles.acc_y().get() };
-    double* RESTRICT az{ particles.acc_z().get() };
+    double* RESTRICT ax{ particles.acc_x() };
+    double* RESTRICT ay{ particles.acc_y() };
+    double* RESTRICT az{ particles.acc_z() };
 
-    double* RESTRICT o_ax{ particles.old_acc_x().get() };
-    double* RESTRICT o_ay{ particles.old_acc_y().get() };
-    double* RESTRICT o_az{ particles.old_acc_z().get() };
+    double* RESTRICT o_ax{ particles.old_acc_x() };
+    double* RESTRICT o_ay{ particles.old_acc_y() };
+    double* RESTRICT o_az{ particles.old_acc_z() };
 
     double const dt_local{ dt() };
 
@@ -68,17 +68,17 @@ Yoshida::Yoshida( double const dt )
 void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const {
     std::size_t const N{ particles.num_particles() };
 
-    double* RESTRICT px{ particles.pos_x().get() };
-    double* RESTRICT py{ particles.pos_y().get() };
-    double* RESTRICT pz{ particles.pos_z().get() };
+    double* RESTRICT px{ particles.pos_x() };
+    double* RESTRICT py{ particles.pos_y() };
+    double* RESTRICT pz{ particles.pos_z() };
 
-    double* RESTRICT vx{ particles.vel_x().get() };
-    double* RESTRICT vy{ particles.vel_y().get() };
-    double* RESTRICT vz{ particles.vel_z().get() };
+    double* RESTRICT vx{ particles.vel_x() };
+    double* RESTRICT vy{ particles.vel_y() };
+    double* RESTRICT vz{ particles.vel_z() };
 
-    double* RESTRICT ax{ particles.acc_x().get() };
-    double* RESTRICT ay{ particles.acc_y().get() };
-    double* RESTRICT az{ particles.acc_z().get() };
+    double* RESTRICT ax{ particles.acc_x() };
+    double* RESTRICT ay{ particles.acc_y() };
+    double* RESTRICT az{ particles.acc_z() };
 
     auto calculate_pos = [this, px, py, pz, vx, vy, vz, N]( double const c ) {
         double const c_dt{ c * dt() };

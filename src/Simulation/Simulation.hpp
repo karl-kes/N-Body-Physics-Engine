@@ -7,6 +7,7 @@
 #include "../Body.hpp"
 #include "../Output.hpp"
 
+#include <iostream>
 #include <memory>
 #include <vector>
 #include <cstddef>

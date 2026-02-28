@@ -6,15 +6,15 @@ Gravity::Gravity()
 void Gravity::apply( Particles &particles ) const {
     std::size_t const N{ particles.num_particles() };
 
-    double const* RESTRICT px{ particles.pos_x().get() };
-    double const* RESTRICT py{ particles.pos_y().get() };
-    double const* RESTRICT pz{ particles.pos_z().get() };
+    double const* RESTRICT px{ particles.pos_x() };
+    double const* RESTRICT py{ particles.pos_y() };
+    double const* RESTRICT pz{ particles.pos_z() };
 
-    double* RESTRICT ax{ particles.acc_x().get() };
-    double* RESTRICT ay{ particles.acc_y().get() };
-    double* RESTRICT az{ particles.acc_z().get() };
+    double* RESTRICT ax{ particles.acc_x() };
+    double* RESTRICT ay{ particles.acc_y() };
+    double* RESTRICT az{ particles.acc_z() };
 
-    double const* RESTRICT mass{ particles.mass().get() };
+    double const* RESTRICT mass{ particles.mass() };
 
     constexpr double eps_sq{ config::EPS * config::EPS };
     constexpr double G{ config::G };

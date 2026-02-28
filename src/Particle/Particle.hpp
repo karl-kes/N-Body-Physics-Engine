@@ -1,102 +1,50 @@
 #pragma once
 
 #include <memory>
-#include <iostream>
-#include <experimental/mdspan>
-
-namespace stdex = std::experimental;
 
 class Particles {
 private:
-    // Number of Particles:
-    std::size_t num_particles_;
-
-    // Mass:
-    std::unique_ptr<double[]> mass_; // kg
-
-    // Position, Velocity, and Acceleration of particle:
-    std::unique_ptr<double[]> pos_x_, pos_y_, pos_z_; // m
-    std::unique_ptr<double[]> vel_x_, vel_y_, vel_z_; // m/s
-    std::unique_ptr<double[]> acc_x_, acc_y_, acc_z_; // m/s^2
-    std::unique_ptr<double[]> old_acc_x_, old_acc_y_, old_acc_z_; // m/s^2
-
-    // Potential Energy:
-    std::unique_ptr<double[]> potential_energy_;
+    static constexpr std::size_t num_fields_{ 13 }; // Number of pointers
+    std::size_t N_;                                 // Number of particles
+    std::unique_ptr<double[]> mem_block_;           // Size of memory block for each pointer
 
 public:
-    // Constructor, Destructor, Copy, Move:
-    explicit Particles( std::size_t const num_particles );
-    
+    // Constructor:
+    explicit Particles( std::size_t const num_particles )
+    : N_{ num_particles } {
+        mem_block_ = std::make_unique<double[]>( num_fields_*num_particles );
+    }
+
     // Getters & Setters:
-    // Num Particles:
-    [[nodiscard]] std::size_t num_particles() const { return num_particles_; }
+    [[nodiscard]] std::size_t num_particles() const { return N_; }
 
-    // Mass
-    [[nodiscard]] double mass( std::size_t const idx ) const { return mass_[idx]; }
+    // Mutable raw pointers:
+    double* pos_x() { return mem_block_.get(); }
+    double* pos_y() { return mem_block_.get() + N_; }
+    double* pos_z() { return mem_block_.get() + 2*N_; }
+    double* vel_x() { return mem_block_.get() + 3*N_; }
+    double* vel_y() { return mem_block_.get() + 4*N_; }
+    double* vel_z() { return mem_block_.get() + 5*N_; }
+    double* acc_x() { return mem_block_.get() + 6*N_; }
+    double* acc_y() { return mem_block_.get() + 7*N_; }
+    double* acc_z() { return mem_block_.get() + 8*N_; }
+    double* old_acc_x() { return mem_block_.get() + 9*N_; }
+    double* old_acc_y() { return mem_block_.get() + 10*N_; }
+    double* old_acc_z() { return mem_block_.get() + 11*N_; }
+    double* mass() { return mem_block_.get() + 12*N_; }
 
-    // Getters:
-    // Positions:
-    [[nodiscard]] double pos_x( std::size_t const idx ) const { return pos_x_[idx]; }
-    [[nodiscard]] double pos_y( std::size_t const idx ) const { return pos_y_[idx]; }
-    [[nodiscard]] double pos_z( std::size_t const idx ) const { return pos_z_[idx]; }
-
-    // Velocities:
-    [[nodiscard]] double vel_x( std::size_t const idx ) const { return vel_x_[idx]; }
-    [[nodiscard]] double vel_y( std::size_t const idx ) const { return vel_y_[idx]; }
-    [[nodiscard]] double vel_z( std::size_t const idx ) const { return vel_z_[idx]; }
-
-    // Accelerations:
-    [[nodiscard]] double acc_x( std::size_t const idx ) const { return acc_x_[idx]; }
-    [[nodiscard]] double acc_y( std::size_t const idx ) const { return acc_y_[idx]; }
-    [[nodiscard]] double acc_z( std::size_t const idx ) const { return acc_z_[idx]; }
-
-    [[nodiscard]] double old_acc_x( std::size_t const idx ) const { return old_acc_x_[idx]; }
-    [[nodiscard]] double old_acc_y( std::size_t const idx ) const { return old_acc_y_[idx]; }
-    [[nodiscard]] double old_acc_z( std::size_t const idx ) const { return old_acc_z_[idx]; }
-
-    // Pointer:
-    [[nodiscard]] const std::unique_ptr<double[]> &pos_x() const { return pos_x_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &pos_y() const { return pos_y_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &pos_z() const { return pos_z_; }
-
-    [[nodiscard]] const std::unique_ptr<double[]> &vel_x() const { return vel_x_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &vel_y() const { return vel_y_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &vel_z() const { return vel_z_; }
-
-    [[nodiscard]] const std::unique_ptr<double[]> &acc_x() const { return acc_x_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &acc_y() const { return acc_y_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &acc_z() const { return acc_z_; }
-
-    [[nodiscard]] const std::unique_ptr<double[]> &old_acc_x() const { return old_acc_x_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &old_acc_y() const { return old_acc_y_; }
-    [[nodiscard]] const std::unique_ptr<double[]> &old_acc_z() const { return old_acc_z_; }
-
-    [[nodiscard]] const std::unique_ptr<double[]> &mass() const { return mass_; }
-
-    [[nodiscard]] const std::unique_ptr<double[]> &potential_energy() const { return potential_energy_; }
-
-    // Setters:
-    // Mass:
-    std::unique_ptr<double[]> &mass() { return mass_; }
-
-    // Positions:
-    std::unique_ptr<double[]> &pos_x() { return pos_x_; }
-    std::unique_ptr<double[]> &pos_y() { return pos_y_; }
-    std::unique_ptr<double[]> &pos_z() { return pos_z_; }
-
-    // Velocities:
-    std::unique_ptr<double[]> &vel_x() { return vel_x_; }
-    std::unique_ptr<double[]> &vel_y() { return vel_y_; }
-    std::unique_ptr<double[]> &vel_z() { return vel_z_; }
-
-    // Accelerations:
-    std::unique_ptr<double[]> &acc_x() { return acc_x_; }
-    std::unique_ptr<double[]> &acc_y() { return acc_y_; }
-    std::unique_ptr<double[]> &acc_z() { return acc_z_; }
-
-    std::unique_ptr<double[]> &old_acc_x() { return old_acc_x_; }
-    std::unique_ptr<double[]> &old_acc_y() { return old_acc_y_; }
-    std::unique_ptr<double[]> &old_acc_z() { return old_acc_z_; }
-
-    std::unique_ptr<double[]> &potential_energy() { return potential_energy_; }
+    // Const raw pointers:
+    const double* pos_x() const { return mem_block_.get(); }
+    const double* pos_y() const { return mem_block_.get() + N_; }
+    const double* pos_z() const { return mem_block_.get() + 2*N_; }
+    const double* vel_x() const { return mem_block_.get() + 3*N_; }
+    const double* vel_y() const { return mem_block_.get() + 4*N_; }
+    const double* vel_z() const { return mem_block_.get() + 5*N_; }
+    const double* acc_x() const { return mem_block_.get() + 6*N_; }
+    const double* acc_y() const { return mem_block_.get() + 7*N_; }
+    const double* acc_z() const { return mem_block_.get() + 8*N_; }
+    const double* old_acc_x() const { return mem_block_.get() + 9*N_; }
+    const double* old_acc_y() const { return mem_block_.get() + 10*N_; }
+    const double* old_acc_z() const { return mem_block_.get() + 11*N_; }
+    const double* mass() const { return mem_block_.get() + 12*N_; }
 };
