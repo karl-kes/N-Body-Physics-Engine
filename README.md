@@ -15,8 +15,8 @@ A high-performance N-Body Gravity Engine for solar system simulation, written in
 | Mean max relative error | 0.053% |
 | Worst-case body | Ganymede (0.290%) |
 | Planet error range | 0.0003% – 0.173% |
-| Energy conservation ΔE/E | 7.4 × 10⁻¹¹% |
-| Wall-clock runtime | 56.5 s (single core) |
+| Energy conservation ΔE/E | 6.49 × 10⁻¹¹% |
+| Wall-clock runtime | 44.8 s |
 
 **249-year simulation (1950–2199):**
 
@@ -25,7 +25,7 @@ A high-performance N-Body Gravity Engine for solar system simulation, written in
 | Mean max relative error | 0.079% |
 | Worst-case body | Mercury (0.417%) |
 | Planet error range | 0.0007% – 0.417% |
-| Energy conservation ΔE/E | 1.5 × 10⁻¹⁰% |
+| Energy conservation ΔE/E | 1.46 × 10⁻¹⁰% |
 | Wall-clock runtime | 112.3 s |
 
 Residual errors are attributed to physics model differences (Newtonian gravity with 35 bodies vs. JPL DE441's ~300 bodies with post-Newtonian relativity, solar oblateness J₂, asteroid perturbations, and tidal effects), not numerical integration error. Reducing Δt by 10× improves energy conservation by ~460× while positional errors remain unchanged; they have converged to the physics model floor.
