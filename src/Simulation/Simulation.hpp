@@ -4,10 +4,10 @@
 #include "../Force/Force.hpp"
 #include "../Integrator/Integrator.hpp"
 #include "../Config.hpp"
-#include "../Body.hpp"
-#include "../Output.hpp"
+#include "../Output/Output.hpp"
 
 #include <iostream>
+#include <string>
 #include <memory>
 #include <vector>
 #include <cstddef>
@@ -32,6 +32,8 @@ private:
     std::size_t num_bodies_;
     std::size_t num_steps_;
     std::size_t output_interval_;
+    std::vector<std::string> body_names_;
+    std::string output_path_;
 
     double total_energy() const;
 
@@ -46,7 +48,9 @@ public:
     // Constructor:
     explicit Simulation( std::size_t const num_particles,
                          std::size_t const steps, 
-                         std::size_t const output_interval );
+                         std::size_t const output_interval,
+                         std::vector<std::string> names,
+                         std::string output_path );
 
     // Getters & Setters:
     // Particles:

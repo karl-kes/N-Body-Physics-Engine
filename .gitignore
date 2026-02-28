@@ -3,5 +3,5 @@
 *.csv
 .vscode
 src/Body.hpp
-src/validation
 build
+tests

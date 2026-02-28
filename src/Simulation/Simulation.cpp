@@ -1,12 +1,18 @@
 #include "Simulation.hpp"
 
-Simulation::Simulation( std::size_t const num_particles, std::size_t const steps, std::size_t const output_interval )
+Simulation::Simulation( std::size_t const num_particles,
+                        std::size_t const steps, 
+                        std::size_t const output_interval,
+                        std::vector<std::string> names,
+                        std::string output_path )
 : particles_{ num_particles }
 , forces_{}
 , integrator_{ nullptr }
 , num_bodies_{ num_particles }
 , num_steps_{ steps }
 , output_interval_{ output_interval }
+, body_names_{ std::move( names ) }
+, output_path_{ std::move( output_path ) }
 { }
 
 void Simulation::run() {
@@ -14,7 +20,7 @@ void Simulation::run() {
     double max_energy{ initial_energy };
     double min_energy{ initial_energy };
 
-    Binary_Output bin{ "src/validation/sim_output.bin", bodies, num_bodies() };
+    Binary_Output bin{ output_path_, body_names_, num_bodies() };
     bin.write( particles(), num_bodies(), 0, 0.0 );
 
     auto const start_time{ std::chrono::high_resolution_clock::now() };

@@ -33,8 +33,21 @@ int main() {
     // Determine number of bodies:
     static constexpr std::size_t num_bodies{ sizeof(bodies) / sizeof(bodies[0]) };
 
+    // Prepare bodies:
+    std::vector<std::string> names{};
+    names.reserve( num_bodies );
+    for ( std::size_t i{}; i < num_bodies; ++i ) {
+        names.emplace_back( bodies[i].name );
+    }
+
     // Initialize Simulation:
-    Simulation sim{ num_bodies, config::total_steps, config::output_interval };
+    Simulation sim{ 
+        num_bodies,
+        config::total_steps,
+        config::output_interval,
+        std::move( names ),
+        "tests/sim_output.bin"
+    };
     sim.add_force( std::make_unique<Gravity>() );
     sim.set_integrator( std::make_unique<Yoshida>( config::dt ) );
     initialize_bodies( sim.particles(), num_bodies );

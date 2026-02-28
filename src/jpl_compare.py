@@ -135,7 +135,7 @@ def cmd_fetch(args):
         print("No data fetched."); return
 
     # Ensure validation directory exists
-    Path("src/validation").mkdir(exist_ok=True)
+    Path("tests").mkdir(exist_ok=True)
 
     with open("src/Body.hpp", "w") as f:
         f.write('#pragma once\n#include "Particle/Particle.hpp"\n#include "Config.hpp"\n\n')
@@ -162,19 +162,19 @@ def cmd_fetch(args):
         f.write("    }\n}\n")
     print(f"\n-> src/Body.hpp ({len(data)} bodies)")
 
-    with open("src/validation/jpl_reference.csv", "w") as f:
+    with open("tests/jpl_reference.csv", "w") as f:
         f.write("name,jd,date,x_km,y_km,z_km,vx_kms,vy_kms,vz_kms\n")
         for n, d in data.items():
             for s in d["states"]:
                 f.write(f'{n},{s["jd"]:.6f},{s["date"]},'
                         f'{s["x"]:.10e},{s["y"]:.10e},{s["z"]:.10e},'
                         f'{s["vx"]:.10e},{s["vy"]:.10e},{s["vz"]:.10e}\n')
-    print(f"-> src/validation/jpl_reference.csv")
+    print(f"-> tests/jpl_reference.csv")
 
     cat = {n: {"id":d["id"],"mass_kg":d["mass"],"gm":d["gm"],"parent":d["parent"],
                "epochs":len(d["states"])} for n,d in data.items()}
-    Path("src/validation/body_catalog.json").write_text(json.dumps(cat, indent=2))
-    print(f"-> src/validation/body_catalog.json")
+    Path("tests/body_catalog.json").write_text(json.dumps(cat, indent=2))
+    print(f"-> tests/body_catalog.json")
 
 # Binary loader:
 
@@ -265,8 +265,8 @@ def main():
     f.add_argument("--moons", action="store_true")
 
     c = sub.add_parser("compare")
-    c.add_argument("--sim", default="src/validation/sim_output.bin")
-    c.add_argument("--ref", default="src/validation/jpl_reference.csv")
+    c.add_argument("--sim", default="tests/sim_output.bin")
+    c.add_argument("--ref", default="tests/jpl_reference.csv")
     c.add_argument("--bodies", default=None)
 
     args = p.parse_args()
