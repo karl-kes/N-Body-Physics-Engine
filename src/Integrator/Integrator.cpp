@@ -80,7 +80,7 @@ void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force
     double* RESTRICT ay{ particles.acc_y().get() };
     double* RESTRICT az{ particles.acc_z().get() };
 
-    auto calculate_pos = [=]( double const c ) {
+    auto calculate_pos = [this, px, py, pz, vx, vy, vz, N]( double const c ) {
         double const c_dt{ c * dt() };
 
         #pragma omp simd
@@ -91,18 +91,20 @@ void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force
         }
     };
 
-    auto apply_force = [&]() {
-        std::size_t const bytes{ N * sizeof(double) };
-        std::memset( ax, 0, bytes );
-        std::memset( ay, 0, bytes );
-        std::memset( az, 0, bytes );
+    auto apply_force = [&forces, &particles, ax, ay, az, N]() {
+        #pragma omp simd
+        for ( std::size_t i = 0; i < N; ++i ) {
+            ax[i] = 0.0;
+            ay[i] = 0.0;
+            az[i] = 0.0;
+        }
 
         for ( auto const &force : forces ) {
             force->apply( particles );
         };
     };
 
-    auto calculate_vel = [=]( double const d ) {
+    auto calculate_vel = [this, vx, vy, vz, ax, ay, az, N]( double const d ) {
         double const d_dt{ d * dt() };
 
         #pragma omp simd

@@ -26,7 +26,7 @@ class Gravity : public Force {
 public:
     Gravity();
     static inline void compute_forces (
-        double const pxi, double const pyi, double const pzi, double const mi,
+        double const pxi, double const pyi, double const pzi,
         double const pxj, double const pyj, double const pzj, double const mj,
         double &a_xi, double &a_yi, double &a_zi,
         double const G, double const eps_sq, double const mask

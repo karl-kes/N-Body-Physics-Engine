@@ -2,6 +2,9 @@
 
 #include <memory>
 #include <iostream>
+#include <experimental/mdspan>
+
+namespace stdex = std::experimental;
 
 class Particles {
 private:

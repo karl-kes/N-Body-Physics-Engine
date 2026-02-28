@@ -10,10 +10,6 @@ void Gravity::apply( Particles &particles ) const {
     double const* RESTRICT py{ particles.pos_y().get() };
     double const* RESTRICT pz{ particles.pos_z().get() };
 
-    double* RESTRICT vx{ particles.vel_x().get() };
-    double* RESTRICT vy{ particles.vel_y().get() };
-    double* RESTRICT vz{ particles.vel_z().get() };
-
     double* RESTRICT ax{ particles.acc_x().get() };
     double* RESTRICT ay{ particles.acc_y().get() };
     double* RESTRICT az{ particles.acc_z().get() };
@@ -23,10 +19,8 @@ void Gravity::apply( Particles &particles ) const {
     constexpr double eps_sq{ config::EPS * config::EPS };
     constexpr double G{ config::G };
 
-    auto apply_kernel = [=]( std::size_t i ) {
+    auto apply_kernel = [this, px, py, pz, ax, ay, az, mass, N]( std::size_t i ) {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };
-        double const vxi{ vx[i] }, vyi{ vy[i] }, vzi{ vz[i] };
-        double const mi{ mass[i] };
         
         double a_xi{}, a_yi{}, a_zi{};
 
@@ -35,7 +29,7 @@ void Gravity::apply( Particles &particles ) const {
             double const mask{ ( i == j ) ? 0.0 : 1.0 };
 
             compute_forces (
-                pxi, pyi, pzi, mi,
+                pxi, pyi, pzi,
                 px[j], py[j], pz[j], mass[j],
                 a_xi, a_yi, a_zi,
                 G, eps_sq, mask

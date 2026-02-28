@@ -1,8 +1,14 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 project(nbody LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# MDSPAN
+include(FetchContent)
+FetchContent_Declare(
+    kokkos_mdspan
+    GIT_REPOSITORY https://github.com/kokkos/mdspan.git
+    GIT_TAG        mdspan-0.6.0
+)
+FetchContent_MakeAvailable(kokkos_mdspan)
 
 # Sources
 set(SOURCES
@@ -15,13 +21,32 @@ set(SOURCES
 
 add_executable(main ${SOURCES})
 
-target_include_directories(main PRIVATE src)
+target_include_directories(main PRIVATE src ${kokkos_mdspan_SOURCE_DIR}/include)
 
-# Compiler optimizations
+# Force C++23 specifically for this executable
+target_compile_features(main PRIVATE cxx_std_23)
+
+# Prevent compiler-specific extensions (forces -std=c++23 instead of -std=gnu++23)
+set_target_properties(main PROPERTIES CXX_EXTENSIONS OFF) 
+
+# Compiler optimizations and strict warnings
 if(MSVC)
-    target_compile_options(main PRIVATE /O2 /arch:AVX2)
+    target_compile_options(main PRIVATE 
+        /O2 
+        /arch:AVX2
+        /W4
+        /WX
+    )
 else()
-    target_compile_options(main PRIVATE -O3 -march=native)
+    target_compile_options(main PRIVATE 
+        -O3 
+        -march=native
+        -std=c++23
+        -Wall 
+        -Wextra 
+        -Wpedantic 
+        -Werror
+    )
 endif()
 
 # OpenMP

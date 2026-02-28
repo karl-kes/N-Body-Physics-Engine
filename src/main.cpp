@@ -17,7 +17,7 @@ int main() {
     python src/jpl_compare.py fetch --moons
 
     Compile:
-    rm -r build
+    rm -r -Force build
     cmake -B build -G "MinGW Makefiles"
     cmake --build build
     ./build/main.exe
