@@ -36,6 +36,8 @@ private:
     std::string output_path_;
 
     double total_energy() const;
+    double total_ang_momentum() const;
+    double total_lin_momentum() const;
 
     void print_progress( std::size_t const current, std::size_t const total ) const {
         double const percent{ 100.0 * current / total };

@@ -17,8 +17,16 @@ Simulation::Simulation( std::size_t const num_particles,
 
 void Simulation::run() {
     double const initial_energy{ total_energy() };
-    double max_energy{ initial_energy };
     double min_energy{ initial_energy };
+    double max_energy{ initial_energy };
+
+    double const initial_ang_momentum{ total_ang_momentum() };
+    double min_ang_momentum{ initial_ang_momentum };
+    double max_ang_momentum{ initial_ang_momentum };
+
+    double const initial_lin_momentum{ total_lin_momentum() };
+    double min_lin_momentum{ initial_lin_momentum };
+    double max_lin_momentum{ initial_lin_momentum };
 
     Binary_Output bin{ output_path_, body_names_, num_bodies() };
     bin.write( particles(), num_bodies(), 0, 0.0 );
@@ -29,9 +37,22 @@ void Simulation::run() {
         integrator()->integrate( particles(), forces() );
 
         if ( curr_step % ( 10*output_interval() ) == 0 ) {
+            // Energy Tracking:
             double const E{ total_energy() };
             max_energy = std::max( E, max_energy );
             min_energy = std::min( E, min_energy );
+
+            // Ang. Momentum Tracking:
+            double const L{ total_ang_momentum() };
+            max_ang_momentum = std::max( max_ang_momentum, L );
+            min_ang_momentum = std::min( min_ang_momentum, L );
+
+            // Lin. Momentum Tracking:
+            double const P{ total_lin_momentum() };
+            max_lin_momentum = std::max( max_lin_momentum, P );
+            min_lin_momentum = std::min( min_lin_momentum, P );
+
+            // Progress Bar:
             print_progress( curr_step, steps() );
         }
 
@@ -44,8 +65,13 @@ void Simulation::run() {
     auto const end_time{ std::chrono::high_resolution_clock::now() };
     auto const duration{ std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ) };
 
-    double const drift{ std::abs( 100.0 * ( max_energy - min_energy ) / initial_energy ) };
-    std::cout << "\nMax Energy Drift: " << std::scientific << std::setprecision( 6 ) << drift << "%" << std::endl;
+    double const energy_drift{ std::abs( 100.0 * ( max_energy - min_energy ) / initial_energy ) };
+    double const ang_momentum_drift{ std::abs( 100.0 * ( max_ang_momentum - min_ang_momentum ) / initial_ang_momentum ) };
+    double const lin_momentum_drift{ std::abs( 100.0 * ( max_lin_momentum - min_lin_momentum ) / initial_lin_momentum ) };
+
+    std::cout << "\nMax Energy Drift: " << std::scientific << std::setprecision( 6 ) << energy_drift << "%" << std::endl;
+    std::cout << "Max Angular Momentum Drift: " << std::scientific << std::setprecision( 6 ) << ang_momentum_drift << "%" << std::endl;
+    std::cout << "Max Linear Momentum Drift: " << std::scientific << std::setprecision( 6 ) << lin_momentum_drift << "%" << std::endl;
     std::cout << "Duration of Simulation: " << duration.count() << " ms" << std::endl;
 }
 
@@ -125,10 +151,54 @@ double Simulation::total_energy() const {
     return kinetic_energy + potential_energy;
 }
 
+double Simulation::total_ang_momentum() const {
+    std::size_t const N{ particles().num_particles() };
+    double const* RESTRICT m{ particles().mass() };
+
+    double const* RESTRICT px{ particles().pos_x() };
+    double const* RESTRICT py{ particles().pos_y() };
+    double const* RESTRICT pz{ particles().pos_z() };
+
+    double const* RESTRICT vx{ particles().vel_x() };
+    double const* RESTRICT vy{ particles().vel_y() };
+    double const* RESTRICT vz{ particles().vel_z() };
+
+    double Lx{}, Ly{}, Lz{};
+    #pragma omp simd reduction( +:Lx, Ly, Lz )
+    for ( std::size_t i = 0; i < N; ++i ) {
+        Lx += m[i] * ( py[i]*vz[i] - pz[i]*vy[i] );
+        Ly += m[i] * ( pz[i]*vx[i] - px[i]*vz[i] );
+        Lz += m[i] * ( px[i]*vy[i] - py[i]*vx[i] );
+    }
+
+    return std::sqrt( Lx*Lx + Ly*Ly + Lz*Lz );
+}
+
+double Simulation::total_lin_momentum() const {
+    std::size_t const N{ particles().num_particles() };
+
+    double const* RESTRICT m{ particles().mass() };
+
+    double const* RESTRICT vx{ particles().vel_x() };
+    double const* RESTRICT vy{ particles().vel_y() };
+    double const* RESTRICT vz{ particles().vel_z() };
+
+    double Px{}, Py{}, Pz{};
+    #pragma omp simd reduction( +:Px, Py, Pz )
+    for ( std::size_t i = 0; i < N; ++i ) {
+        Px += m[i] * vx[i];
+        Py += m[i] * vy[i];
+        Pz += m[i] * vz[i];
+    }
+
+    return std::sqrt( Px*Px + Py*Py + Pz*Pz );
+}
+
 void Simulation::initial_output() {
     std::cout << "\n<--- Solar System Simulation --->" << std::endl;
     std::cout << "Bodies: " << num_bodies() << std::endl;
     std::cout << "Integrator: " << integrator()->name() << std::endl;
+    std::cout << "Dt: " << config::dt << " seconds" << std::endl;
     std::cout << "Duration: " << config::num_years << " years" << std::endl;
     std::cout << "Parallelization: " << ( ( config::OMP_THRESHOLD <= num_bodies() ) ? "Enabled" : "Disabled" ) << std::endl;
     std::cout << std::endl;
