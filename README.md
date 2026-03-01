@@ -73,7 +73,7 @@ Steps 2–5 work offline.
 All simulation parameters live in `src/Config.hpp`:
 
 ```cpp
-inline static constexpr double dt{ 360.0 };               // Integration timestep (seconds)
+inline static constexpr double dt{ 900.0 };               // Integration timestep (seconds)
 inline static constexpr std::size_t num_years{ 249 };     // Simulation duration
 inline static constexpr std::size_t output_hours{ 487 };  // Output interval (hours)
 ```
