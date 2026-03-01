@@ -4,4 +4,4 @@
 .vscode
 src/Body.hpp
 build
-tests
+tests/*

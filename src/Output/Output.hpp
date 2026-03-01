@@ -8,15 +8,16 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <iostream>
 
 /*
     Binary format:
-    ── Header ──
+    Header
     uint64_t  num_bodies
     For each body:
         char[32] name  (null-padded)
 
-    ── Per frame ──
+    Per frame
     uint64_t  step
     double    time_s
     For each body:
