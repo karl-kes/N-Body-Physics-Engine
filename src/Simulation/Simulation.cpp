@@ -1,10 +1,11 @@
 #include "Simulation.hpp"
 
-Simulation::Simulation( std::size_t const num_particles,
-                        std::size_t const steps, 
-                        std::size_t const output_interval,
-                        std::vector<std::string> names,
-                        std::string output_path )
+Simulation::Simulation( 
+    std::size_t const num_particles,
+    std::size_t const steps, 
+    std::size_t const output_interval,
+    std::vector<std::string> names,
+    std::string output_path )
 : particles_{ num_particles }
 , forces_{}
 , integrator_{ nullptr }
@@ -99,13 +100,13 @@ double Simulation::total_energy() const {
     constexpr double OMP_THRESHOLD{ config::OMP_THRESHOLD };
 
     double kinetic_energy{};
-    auto kinetic_kernel = [=]( std::size_t i ) -> double {
+    auto kinetic_kernel = [this, vx, vy, vz, mass]( std::size_t i ) -> double {
         double const v_sq{ vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i] };
         return 0.5 * mass[i] * v_sq;
     };
 
     double potential_energy{};
-    auto potential_kernel = [=]( std::size_t i ) -> double {
+    auto potential_kernel = [this, px, py, pz, mass, N]( std::size_t i ) -> double {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };
         double const mi{ mass[i] };
         double row_pot{ 0.0 };

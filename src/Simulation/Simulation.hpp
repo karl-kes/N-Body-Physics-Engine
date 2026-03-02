@@ -48,11 +48,13 @@ private:
 
 public:
     // Constructor:
-    explicit Simulation( std::size_t const num_particles,
-                         std::size_t const steps, 
-                         std::size_t const output_interval,
-                         std::vector<std::string> names,
-                         std::string output_path );
+    explicit Simulation(
+        std::size_t const num_particles,
+        std::size_t const steps, 
+        std::size_t const output_interval,
+        std::vector<std::string> names,
+        std::string output_path
+    );
 
     // Getters & Setters:
     // Particles:

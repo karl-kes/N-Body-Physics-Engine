@@ -1,8 +1,9 @@
 #include "Output.hpp"
 
-Binary_Output::Binary_Output( std::string const &path, 
-                              std::vector<std::string> const &names, 
-                              std::size_t const num )
+Binary_Output::Binary_Output( 
+    std::string const &path, 
+    std::vector<std::string> const &names, 
+    std::size_t const num )
 : file_{ path, std::ios::binary | std::ios::out }
 , num_bodies_{ num } {
     if ( !file_.is_open() ) {

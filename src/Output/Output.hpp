@@ -31,13 +31,16 @@ private:
     std::vector<double> buffer_;
 
 public:
-    explicit Binary_Output( std::string const &path, 
-                            std::vector<std::string> const &names, 
-                            std::size_t const num );
+    explicit Binary_Output(
+        std::string const &path, 
+        std::vector<std::string> const &names, 
+        std::size_t const num
+    );
 
     void write(
         Particles const &particles,
         std::size_t const num,
         std::size_t const step,
-        double const time );
+        double const time
+    );
 };
