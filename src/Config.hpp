@@ -24,7 +24,6 @@ namespace config {
     inline static constexpr double dt{ 900.0 };                       // Integration timestep (seconds)
     inline static constexpr std::size_t num_years{ 249 };             // Simulation duration (years)
     inline static constexpr std::size_t output_hours{ 487 };          // Output every N hours (must match JPL --step)
-    inline static constexpr std::string_view integrator{ "Yoshida" }; // Integrator name - "Yoshida" or "Velocity_Verlet"
 
     // DERIVED - do not edit these:
 
