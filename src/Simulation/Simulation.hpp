@@ -65,8 +65,8 @@ public:
     [[nodiscard]] std::size_t output_interval() const { return output_interval_; }
     [[nodiscard]] std::size_t num_bodies() const { return num_bodies_; }
 
-    std::vector<std::unique_ptr<Force>> &forces() { return forces_; }
-    std::unique_ptr<Integrator> &integrator() { return integrator_; }
+    [[nodiscard]] std::vector<std::unique_ptr<Force>> &forces() { return forces_; }
+    [[nodiscard]] std::unique_ptr<Integrator> &integrator() { return integrator_; }
 
     // Simulation Functions:
     void run();

@@ -19,32 +19,32 @@ public:
     [[nodiscard]] std::size_t num_particles() const { return N_; }
 
     // Mutable raw pointers:
-    double* pos_x() { return mem_block_.get(); }
-    double* pos_y() { return mem_block_.get() + N_; }
-    double* pos_z() { return mem_block_.get() + 2*N_; }
-    double* vel_x() { return mem_block_.get() + 3*N_; }
-    double* vel_y() { return mem_block_.get() + 4*N_; }
-    double* vel_z() { return mem_block_.get() + 5*N_; }
-    double* acc_x() { return mem_block_.get() + 6*N_; }
-    double* acc_y() { return mem_block_.get() + 7*N_; }
-    double* acc_z() { return mem_block_.get() + 8*N_; }
-    double* old_acc_x() { return mem_block_.get() + 9*N_; }
-    double* old_acc_y() { return mem_block_.get() + 10*N_; }
-    double* old_acc_z() { return mem_block_.get() + 11*N_; }
-    double* mass() { return mem_block_.get() + 12*N_; }
+    [[nodiscard]] double* pos_x() { return mem_block_.get(); }
+    [[nodiscard]] double* pos_y() { return mem_block_.get() + N_; }
+    [[nodiscard]] double* pos_z() { return mem_block_.get() + 2*N_; }
+    [[nodiscard]] double* vel_x() { return mem_block_.get() + 3*N_; }
+    [[nodiscard]] double* vel_y() { return mem_block_.get() + 4*N_; }
+    [[nodiscard]] double* vel_z() { return mem_block_.get() + 5*N_; }
+    [[nodiscard]] double* acc_x() { return mem_block_.get() + 6*N_; }
+    [[nodiscard]] double* acc_y() { return mem_block_.get() + 7*N_; }
+    [[nodiscard]] double* acc_z() { return mem_block_.get() + 8*N_; }
+    [[nodiscard]] double* old_acc_x() { return mem_block_.get() + 9*N_; }
+    [[nodiscard]] double* old_acc_y() { return mem_block_.get() + 10*N_; }
+    [[nodiscard]] double* old_acc_z() { return mem_block_.get() + 11*N_; }
+    [[nodiscard]] double* mass() { return mem_block_.get() + 12*N_; }
 
     // Const raw pointers:
-    const double* pos_x() const { return mem_block_.get(); }
-    const double* pos_y() const { return mem_block_.get() + N_; }
-    const double* pos_z() const { return mem_block_.get() + 2*N_; }
-    const double* vel_x() const { return mem_block_.get() + 3*N_; }
-    const double* vel_y() const { return mem_block_.get() + 4*N_; }
-    const double* vel_z() const { return mem_block_.get() + 5*N_; }
-    const double* acc_x() const { return mem_block_.get() + 6*N_; }
-    const double* acc_y() const { return mem_block_.get() + 7*N_; }
-    const double* acc_z() const { return mem_block_.get() + 8*N_; }
-    const double* old_acc_x() const { return mem_block_.get() + 9*N_; }
-    const double* old_acc_y() const { return mem_block_.get() + 10*N_; }
-    const double* old_acc_z() const { return mem_block_.get() + 11*N_; }
-    const double* mass() const { return mem_block_.get() + 12*N_; }
+    [[nodiscard]] const double* pos_x() const { return mem_block_.get(); }
+    [[nodiscard]] const double* pos_y() const { return mem_block_.get() + N_; }
+    [[nodiscard]] const double* pos_z() const { return mem_block_.get() + 2*N_; }
+    [[nodiscard]] const double* vel_x() const { return mem_block_.get() + 3*N_; }
+    [[nodiscard]] const double* vel_y() const { return mem_block_.get() + 4*N_; }
+    [[nodiscard]] const double* vel_z() const { return mem_block_.get() + 5*N_; }
+    [[nodiscard]] const double* acc_x() const { return mem_block_.get() + 6*N_; }
+    [[nodiscard]] const double* acc_y() const { return mem_block_.get() + 7*N_; }
+    [[nodiscard]] const double* acc_z() const { return mem_block_.get() + 8*N_; }
+    [[nodiscard]] const double* old_acc_x() const { return mem_block_.get() + 9*N_; }
+    [[nodiscard]] const double* old_acc_y() const { return mem_block_.get() + 10*N_; }
+    [[nodiscard]] const double* old_acc_z() const { return mem_block_.get() + 11*N_; }
+    [[nodiscard]] const double* mass() const { return mem_block_.get() + 12*N_; }
 };
