@@ -14,7 +14,6 @@
 #include <iomanip>
 #include <cmath>
 #include <chrono>
-#include <omp.h>
 
 #if defined(__GNUC__) || defined(__clang__)
     #define RESTRICT __restrict__

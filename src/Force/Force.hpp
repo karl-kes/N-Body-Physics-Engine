@@ -6,7 +6,6 @@
 #include <vector>
 #include <cmath>
 #include <cstddef>
-#include <omp.h>
 
 #if defined(__GNUC__) || defined(__clang__)
     #define RESTRICT __restrict__

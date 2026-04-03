@@ -7,8 +7,6 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <omp.h>
-#include <cstring>
 
 #if defined(__GNUC__) || defined(__clang__)
     #define RESTRICT __restrict__

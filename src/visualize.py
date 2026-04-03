@@ -6,7 +6,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 # Usage: python visualize.py
-#        python visualize.py --sim validation/sim_output.bin --speed 2
+#        python visualize.py --sim tests/sim_output.bin --speed 2
 
 #   Space  = play / pause
 #   Right  = step forward
@@ -85,7 +85,7 @@ def read_config(path="src/Config.hpp"):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--sim", default="src/validation/sim_output.bin")
+    p.add_argument("--sim", default="tests/sim_output.bin")
     p.add_argument("--speed", type=float, default=1.0)
     args = p.parse_args()
 

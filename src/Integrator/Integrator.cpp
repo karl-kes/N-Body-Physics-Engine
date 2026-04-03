@@ -1,5 +1,7 @@
 #include "Integrator.hpp"
 
+#include <omp.h>
+
 Velocity_Verlet::Velocity_Verlet( double dt )
 : Integrator{ dt, "Velocity Verlet" }
 { }

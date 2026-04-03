@@ -1,5 +1,7 @@
 #include "Force.hpp"
 
+#include <omp.h>
+
 Gravity::Gravity()
 { }
 
@@ -19,7 +21,7 @@ void Gravity::apply( Particles &particles ) const {
     constexpr double eps_sq{ config::EPS * config::EPS };
     constexpr double G{ config::G };
 
-    auto apply_kernel = [this, px, py, pz, ax, ay, az, mass, N]( std::size_t i ) {
+    auto apply_kernel = [px, py, pz, ax, ay, az, mass, N]( std::size_t i ) {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };
         
         double a_xi{}, a_yi{}, a_zi{};

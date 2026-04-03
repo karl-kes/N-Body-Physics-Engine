@@ -29,6 +29,8 @@ void Simulation::run() {
     double min_lin_momentum{ initial_lin_momentum };
     double max_lin_momentum{ initial_lin_momentum };
 
+    initial_output();
+
     Binary_Output bin{ output_path_, body_names_, num_bodies() };
     bin.write( particles(), num_bodies(), 0, 0.0 );
 
@@ -97,16 +99,16 @@ double Simulation::total_energy() const {
 
     constexpr double eps_sq{ config::EPS * config::EPS };
     constexpr double G{ config::G };
-    constexpr double OMP_THRESHOLD{ config::OMP_THRESHOLD };
+    constexpr std::size_t OMP_THRESHOLD{ config::OMP_THRESHOLD };
 
     double kinetic_energy{};
-    auto kinetic_kernel = [this, vx, vy, vz, mass]( std::size_t i ) -> double {
+    auto kinetic_kernel = [vx, vy, vz, mass]( std::size_t i ) -> double {
         double const v_sq{ vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i] };
         return 0.5 * mass[i] * v_sq;
     };
 
     double potential_energy{};
-    auto potential_kernel = [this, px, py, pz, mass, N]( std::size_t i ) -> double {
+    auto potential_kernel = [px, py, pz, mass, N]( std::size_t i ) -> double {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };
         double const mi{ mass[i] };
         double row_pot{ 0.0 };

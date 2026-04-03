@@ -1,7 +1,5 @@
 *.exe
-*.json
-*.csv
 .vscode
 src/Body.hpp
-build
-tests/*
+build/
+tests/

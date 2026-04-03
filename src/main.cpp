@@ -11,25 +11,6 @@
 #include <string>
 
 int main() {
-    /*
-
-    Initialize:
-    python src/jpl_compare.py fetch --moons
-
-    Compile:
-    rm -r -Force build
-    cmake -B build -G "MinGW Makefiles"
-    cmake --build build
-    ./build/main.exe
-
-    Validate:
-    python src/jpl_compare.py compare
-
-    Visualize:
-    python src/visualize.py
-
-    */
-
     // Determine number of bodies:
     static constexpr std::size_t num_bodies{ sizeof(bodies) / sizeof(bodies[0]) };
 
@@ -53,7 +34,6 @@ int main() {
     initialize_bodies( sim.particles(), num_bodies );
 
     // Run simulation:
-    sim.initial_output();
     sim.run();
 
     return 0;
