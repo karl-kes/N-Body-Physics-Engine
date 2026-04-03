@@ -12,16 +12,17 @@
 
 /*
     Binary format:
-    Header
-    uint64_t  num_bodies
-    For each body:
-        char[32] name  (null-padded)
 
-    Per frame
-    uint64_t  step
-    double    time_s
-    For each body:
-        double x, y, z, vx, vy, vz   (meters, m/s)
+    Header:
+        uint64_t  num_bodies
+        For each body:
+            char[32] name  (null-padded)
+
+    Per frame:
+        double    step     (uint64 reinterpreted as double to fit uniform buffer)
+        double    time_s
+        For each body:
+            double x, y, z, vx, vy, vz   (meters, m/s)
 */
 
 class Binary_Output {
@@ -39,7 +40,6 @@ public:
 
     void write(
         Particles const &particles,
-        std::size_t const num,
         std::size_t const step,
         double const time
     );

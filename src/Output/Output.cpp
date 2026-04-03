@@ -7,7 +7,7 @@ Binary_Output::Binary_Output(
 : file_{ path, std::ios::binary | std::ios::out }
 , num_bodies_{ num } {
     if ( !file_.is_open() ) {
-        std::cout << "Failed to open file: " + path + ". Ensure JPL data has been fetched." << std::endl;
+        throw std::runtime_error( "Failed to open file: " + path + ". Ensure tests/ directory exists and JPL data has been fetched." );
     }
 
     uint64_t const n{ static_cast<uint64_t>( num ) };
@@ -24,21 +24,21 @@ Binary_Output::Binary_Output(
 
 void Binary_Output::write(
     Particles const &particles,
-    std::size_t const num,
     std::size_t const step,
     double const time ) {
 
     buffer_.clear();
 
-    // Frame header - store step as reinterpreted double for uniform buffer
+    // Step is uint64 but the buffer is double[]. Reinterpret via memcpy
+    // to avoid a separate write call. Python reader reverses this with
+    // struct.unpack("Q", struct.pack("d", ...)).
     uint64_t const s{ step };
     double step_bits;
     std::memcpy( &step_bits, &s, sizeof( double ) );
     buffer_.push_back( step_bits );
     buffer_.push_back( time );
 
-    // Per-body state
-    for ( std::size_t i = 0; i < num; ++i ) {
+    for ( std::size_t i = 0; i < num_bodies_; ++i ) {
         buffer_.push_back( particles.pos_x()[i] );
         buffer_.push_back( particles.pos_y()[i] );
         buffer_.push_back( particles.pos_z()[i] );

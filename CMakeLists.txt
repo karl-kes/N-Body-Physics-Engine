@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(nbody LANGUAGES CXX)
 
 # Sources
@@ -32,7 +32,6 @@ else()
     target_compile_options(main PRIVATE 
         -O3 
         -march=native
-        -std=c++23
         -Wall 
         -Wextra 
         -Wpedantic 

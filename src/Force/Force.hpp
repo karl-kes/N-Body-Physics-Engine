@@ -24,12 +24,15 @@ public:
 class Gravity : public Force {
 public:
     Gravity();
-    static inline void compute_forces (
+
+    // Accumulates gravitational acceleration on body i due to body j.
+    // mask = 0.0 for self-interaction (i == j), 1.0 otherwise.
+    // Branchless mask preserves SIMD vectorization of the inner loop.
+    static inline void accumulate_pairwise (
         double const pxi, double const pyi, double const pzi,
         double const pxj, double const pyj, double const pzj, double const mj,
         double &a_xi, double &a_yi, double &a_zi,
-        double const G, double const eps_sq, double const mask
-    ) {
+        double const G, double const eps_sq, double const mask ) {
 
         double const dx{ pxj - pxi };
         double const dy{ pyj - pyi };

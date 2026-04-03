@@ -5,8 +5,6 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import ssl
 
-ssl._create_default_https_context = ssl._create_unverified_context
-
 # Usage (reads config from Config.hpp automatically):
 # python jpl_compare.py fetch --moons
 # python jpl_compare.py compare
@@ -71,6 +69,13 @@ MOONS = [
 
 API = "https://ssd.jpl.nasa.gov/api/horizons.api"
 
+# Unverified SSL context for environments where the JPL certificate chain
+# is not trusted (common on university/corporate networks).
+# Only used for JPL Horizons requests, not set globally.
+_jpl_ssl_ctx = ssl.create_default_context()
+_jpl_ssl_ctx.check_hostname = False
+_jpl_ssl_ctx.verify_mode = ssl.CERT_NONE
+
 def fetch_vectors(body_id, start, stop, step):
     params = {
         "format": "text", "COMMAND": f"'{body_id}'",
@@ -82,7 +87,7 @@ def fetch_vectors(body_id, start, stop, step):
     url = API + "?" + urllib.parse.urlencode(params, safe="'@")
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(url, timeout=60) as r:
+            with urllib.request.urlopen(url, timeout=60, context=_jpl_ssl_ctx) as r:
                 return r.read().decode()
         except Exception as e:
             if attempt < 2: time.sleep(2*(attempt+1))
@@ -134,7 +139,6 @@ def cmd_fetch(args):
     if not data:
         print("No data fetched."); return
 
-    # Ensure validation directory exists
     Path("tests").mkdir(exist_ok=True)
 
     with open("src/Body.hpp", "w") as f:
@@ -181,14 +185,12 @@ def cmd_fetch(args):
 def load_sim_binary(path):
     data = defaultdict(lambda: {"t": [], "pos": [], "vel": []})
     with open(path, "rb") as f:
-        # Read header
         num_bodies = struct.unpack("Q", f.read(8))[0]
         names = []
         for _ in range(num_bodies):
             raw = f.read(32)
             names.append(raw.split(b'\x00')[0].decode())
 
-        # Read frames
         doubles_per_frame = 2 + num_bodies * 6
         frame_size = doubles_per_frame * 8
 
@@ -199,14 +201,15 @@ def load_sim_binary(path):
 
             frame = np.frombuffer(raw, dtype=np.float64)
 
+            # Step field is uint64 reinterpreted as double (see Output.cpp)
             step = struct.unpack("Q", struct.pack("d", frame[0]))[0]
             time_s = frame[1]
 
             states = frame[2:].reshape(num_bodies, 6)
             for i, name in enumerate(names):
                 data[name]["t"].append(time_s)
-                data[name]["pos"].append(states[i, 0:3] / 1e3)
-                data[name]["vel"].append(states[i, 3:6] / 1e3)
+                data[name]["pos"].append(states[i, 0:3] / 1e3)  # m -> km
+                data[name]["vel"].append(states[i, 3:6] / 1e3)  # m/s -> km/s
 
     return {n: {k: np.array(v) for k, v in d.items()} for n, d in data.items()}
 
@@ -242,6 +245,7 @@ def cmd_compare(args):
         pos_err = np.linalg.norm(sp - rp, axis=1)
         r_ref = np.linalg.norm(rp, axis=1)
         rel = np.where(r_ref > 0, pos_err / r_ref, 0)
+        # Skip epoch 0 (identical by construction) when reporting max error
         results[name] = rel[1:].max() * 100
 
     print(f"{'Body':<14} {'Max Relative Error (%)'}")

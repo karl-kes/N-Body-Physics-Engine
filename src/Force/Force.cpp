@@ -21,6 +21,9 @@ void Gravity::apply( Particles &particles ) const {
     constexpr double eps_sq{ config::EPS * config::EPS };
     constexpr double G{ config::G };
 
+    // Each body sums over all N others (j = 0..N-1) rather than using j > i symmetry.
+    // This doubles FLOPs but preserves regular access patterns for SIMD and
+    // avoids write conflicts under OpenMP without atomic operations.
     auto apply_kernel = [px, py, pz, ax, ay, az, mass, N]( std::size_t i ) {
         double const pxi{ px[i] }, pyi{ py[i] }, pzi{ pz[i] };
         
@@ -30,7 +33,7 @@ void Gravity::apply( Particles &particles ) const {
         for ( std::size_t j = 0; j < N; ++j ) {
             double const mask{ ( i == j ) ? 0.0 : 1.0 };
 
-            compute_forces (
+            accumulate_pairwise (
                 pxi, pyi, pzi,
                 px[j], py[j], pz[j], mass[j],
                 a_xi, a_yi, a_zi,

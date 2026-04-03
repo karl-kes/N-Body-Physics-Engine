@@ -4,10 +4,10 @@
 
 class Particles {
 private:
-    // Number of particles
     std::size_t N_;
-
-    // Readable memory indexing:
+    
+    // SoA field indices into the contiguous memory block.
+    // All 13 arrays are packed end-to-end: [pos_x|pos_y|...|mass], each of length N.
     enum ArrayIndex : std::size_t {
         POS_X,
         POS_Y,
@@ -25,17 +25,23 @@ private:
         NUM_SUB_ARRAYS
     };
 
-    // Memory monolith:
+    // Single contiguous allocation: 13 * N doubles.
+    // Eliminates per-array allocation overhead and guarantees spatial locality.
     std::unique_ptr<double[]> mem_block_;
 
 public:
-    // Constructor:
     explicit Particles( std::size_t const num_particles )
     : N_{ num_particles }
     , mem_block_{ std::make_unique<double[]>( NUM_SUB_ARRAYS * num_particles ) }
     { }
 
-    // Getters & Setters:
+    // Move-only: unique_ptr member prevents copying implicitly,
+    // but explicit declarations make ownership semantics clear.
+    Particles( Particles&& ) = default;
+    Particles& operator=( Particles&& ) = default;
+    Particles( Particles const& ) = delete;
+    Particles& operator=( Particles const& ) = delete;
+
     [[nodiscard]] std::size_t num_particles() const { return N_; }
 
     // Mutable raw pointers:

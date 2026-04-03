@@ -56,12 +56,10 @@ void Velocity_Verlet::integrate( Particles &particles, std::vector<std::unique_p
 
 Yoshida::Yoshida( double const dt )
 : Integrator{ dt, "Yoshida" }
-, w_0_{ -cbrt_2() / ( 2.0 - cbrt_2() ) }
-, w_1_{ 1.0 / ( 2.0 - cbrt_2() ) }
 , c_1_{ w_1() / 2.0 }
 , c_2_{ ( w_0() + w_1() ) / 2.0 }
-, c_3_{ c_2() }
-, c_4_{ c_1() }
+, c_3_{ ( w_0() + w_1() ) / 2.0 }
+, c_4_{ w_1() / 2.0 }
 , d_1_{ w_1() }
 , d_2_{ w_0() }
 , d_3_{ w_1() }
@@ -117,21 +115,18 @@ void Yoshida::integrate( Particles &particles, std::vector<std::unique_ptr<Force
         }
     };
 
-    // Step 1:
+    // d2 (= w0) is negative: the backward sub-step cancels lower-order error terms.
     calculate_pos( c_1() );
     apply_force();
     calculate_vel( d_1() );
 
-    // Step 2:
     calculate_pos( c_2() );
     apply_force();
     calculate_vel( d_2() );
 
-    // Step 3:
     calculate_pos( c_3() );
     apply_force();
     calculate_vel( d_3() );
 
-    // Step 4:
     calculate_pos( c_4() );
 }

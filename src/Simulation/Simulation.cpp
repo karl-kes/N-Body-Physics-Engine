@@ -32,35 +32,35 @@ void Simulation::run() {
     initial_output();
 
     Binary_Output bin{ output_path_, body_names_, num_bodies() };
-    bin.write( particles(), num_bodies(), 0, 0.0 );
+    bin.write( particles(), 0, 0.0 );
 
     auto const start_time{ std::chrono::high_resolution_clock::now() };
 
     for ( std::size_t curr_step{1}; curr_step <= steps(); ++curr_step ) {
         integrator()->integrate( particles(), forces() );
 
+        // Sample conservation quantities at 10x the output cadence.
+        // This is infrequent enough to be cheap (energy is O(N^2)) but frequent
+        // enough to capture the symplectic oscillation envelope, whose period
+        // is dominated by Jupiter's ~12 year orbit.
         if ( curr_step % ( 10*output_interval() ) == 0 ) {
-            // Energy Tracking:
             double const E{ total_energy() };
             max_energy = std::max( E, max_energy );
             min_energy = std::min( E, min_energy );
 
-            // Ang. Momentum Tracking:
             double const L{ total_ang_momentum() };
             max_ang_momentum = std::max( max_ang_momentum, L );
             min_ang_momentum = std::min( min_ang_momentum, L );
 
-            // Lin. Momentum Tracking:
             double const P{ total_lin_momentum() };
             max_lin_momentum = std::max( max_lin_momentum, P );
             min_lin_momentum = std::min( min_lin_momentum, P );
 
-            // Progress Bar:
             print_progress( curr_step, steps() );
         }
 
         if ( curr_step % output_interval() == 0 ) {
-            bin.write( particles(), num_bodies(), curr_step, curr_step * config::dt );
+            bin.write( particles(), curr_step, curr_step * config::dt );
         }
     }
     std::cout << "\rProgress: 100%" << std::flush;
@@ -68,6 +68,8 @@ void Simulation::run() {
     auto const end_time{ std::chrono::high_resolution_clock::now() };
     auto const duration{ std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ) };
 
+    // Peak-to-peak relative variation: |max - min| / |initial|.
+    // This is a conservative upper bound; see paper Section 4 for discussion.
     double const energy_drift{ std::abs( 100.0 * ( max_energy - min_energy ) / initial_energy ) };
     double const ang_momentum_drift{ std::abs( 100.0 * ( max_ang_momentum - min_ang_momentum ) / initial_ang_momentum ) };
     double const lin_momentum_drift{ std::abs( 100.0 * ( max_lin_momentum - min_lin_momentum ) / initial_lin_momentum ) };
@@ -113,6 +115,7 @@ double Simulation::total_energy() const {
         double const mi{ mass[i] };
         double row_pot{ 0.0 };
 
+        // j > i avoids double-counting pairs in the potential sum.
         #pragma omp simd reduction( +:row_pot )
         for ( std::size_t j = i + 1; j < N; ++j ) {
             double const dx{ px[j] - pxi };
