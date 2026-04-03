@@ -242,21 +242,72 @@ def cmd_compare(args):
         if n < 2: continue
         sp = sim[name]["pos"][:n]
         rp = ref[name]["pos"][:n]
-        pos_err = np.linalg.norm(sp - rp, axis=1)
+
+        # Absolute position error (km) at each epoch
+        abs_err = np.linalg.norm(sp - rp, axis=1)
+
+        # Reference barycentric distance (km) at each epoch
         r_ref = np.linalg.norm(rp, axis=1)
-        rel = np.where(r_ref > 0, pos_err / r_ref, 0)
-        # Skip epoch 0 (identical by construction) when reporting max error
-        results[name] = rel[1:].max() * 100
 
-    print(f"{'Body':<14} {'Max Relative Error (%)'}")
-    print("=" * 40)
-    for name in sorted(results, key=results.get, reverse=True):
-        print(f"{name:<14} {results[name]:.6f}")
+        # Relative error at each epoch
+        rel = np.where(r_ref > 0, abs_err / r_ref, 0)
 
-    vals = list(results.values())
-    print("=" * 40)
-    print(f"{'Worst:':<14} {max(vals):.6f}%")
-    print(f"{'Average:':<14} {sum(vals)/len(vals):.6f}%")
+        # Skip epoch 0 (identical by construction) for all metrics
+        results[name] = {
+            "max_rel_pct":  rel[1:].max() * 100,
+            "rms_rel_pct":  np.sqrt(np.mean(rel[1:]**2)) * 100,
+            "max_abs_km":   abs_err[1:].max(),
+            "rms_abs_km":   np.sqrt(np.mean(abs_err[1:]**2)),
+            "mean_abs_km":  abs_err[1:].mean(),
+        }
+
+    # Table 1: Relative position error (%)
+    print(f"{'Body':<14} {'Max Rel (%)':<16} {'RMS Rel (%)':<16}")
+    print("=" * 48)
+    for name in sorted(results, key=lambda n: results[n]["max_rel_pct"], reverse=True):
+        r = results[name]
+        print(f"{name:<14} {r['max_rel_pct']:<16.6f} {r['rms_rel_pct']:<16.6f}")
+
+    rel_vals = [r["max_rel_pct"] for r in results.values()]
+    rel_vals_no_sun = [r["max_rel_pct"] for n, r in results.items() if n != "Sun"]
+
+    print("=" * 48)
+    print(f"{'Worst:':<14} {max(rel_vals):.6f}%")
+    print(f"{'Mean:':<14} {sum(rel_vals)/len(rel_vals):.6f}%")
+    if len(rel_vals_no_sun) < len(rel_vals):
+        print(f"{'Mean (ex Sun):':<14} {sum(rel_vals_no_sun)/len(rel_vals_no_sun):.6f}%")
+
+    # Table 2: Absolute position error (km)
+    print(f"\n{'Body':<14} {'Max Abs (km)':<18} {'RMS Abs (km)':<18} {'Mean Abs (km)':<18}")
+    print("=" * 70)
+    for name in sorted(results, key=lambda n: results[n]["max_abs_km"], reverse=True):
+        r = results[name]
+        print(f"{name:<14} {r['max_abs_km']:<18.2f} {r['rms_abs_km']:<18.2f} {r['mean_abs_km']:<18.2f}")
+
+    abs_vals = [r["max_abs_km"] for r in results.values()]
+    abs_vals_no_sun = [r["max_abs_km"] for n, r in results.items() if n != "Sun"]
+
+    print("=" * 70)
+    print(f"{'Worst:':<14} {max(abs_vals):.2f} km")
+    print(f"{'Mean:':<14} {sum(abs_vals)/len(abs_vals):.2f} km")
+    if len(abs_vals_no_sun) < len(abs_vals):
+        print(f"{'Mean (ex Sun):':<14} {sum(abs_vals_no_sun)/len(abs_vals_no_sun):.2f} km")
+
+    # Export JSON summary
+    summary = {
+        "bodies": {n: r for n, r in results.items()},
+        "summary": {
+            "num_bodies": len(results),
+            "mean_max_rel_pct": sum(rel_vals) / len(rel_vals),
+            "mean_max_rel_pct_ex_sun": sum(rel_vals_no_sun) / len(rel_vals_no_sun) if rel_vals_no_sun else None,
+            "worst_max_rel_pct": max(rel_vals),
+            "worst_max_abs_km": max(abs_vals),
+            "mean_max_abs_km": sum(abs_vals) / len(abs_vals),
+        },
+    }
+    out_path = Path("tests/comparison_results.json")
+    out_path.write_text(json.dumps(summary, indent=2, default=float))
+    print(f"\n-> {out_path}")
 
 # Interface:
 
