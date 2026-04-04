@@ -205,7 +205,7 @@ Displays 3D orbits alongside energy conservation, momentum drift, and heliocentr
 
 **Branchless force kernel.** Self-interaction is eliminated with a floating-point mask rather than a conditional branch, preserving SIMD vectorization. Newton's third law symmetry is intentionally not exploited; the doubled FLOP count is traded for regular memory access patterns and freedom from race conditions under OpenMP.
 
-**OpenMP parallelization.** Thread parallelism activates above a configurable threshold. SIMD vectorization of the inner loop is always active. At N = 16,384, OpenMP yields 5.8× speedup on 22 threads, with throughput peaking at ~126 estimated GFLOP/s. Scaling is limited by memory bandwidth on laptop-class hardware; the force kernel is bandwidth-bound at ~21 GFLOP/s per core.
+**OpenMP parallelization.** Thread parallelism activates above a configurable threshold. SIMD vectorization of the inner loop is always active. At N = 131,072, OpenMP yields 4.60× (124810.4 ms to 27145.6 ms) speedup on 12 threads, with throughput reaching an estimated ~153.79 GFLOP/s compared with an estimated ~33.45 GFLOP/s for the 1-thread baseline. Scaling improves with N and then saturates, suggesting limitation by shared hardware resources such as cache, memory hierarchy, and thread-level overhead.
 
 ---
 

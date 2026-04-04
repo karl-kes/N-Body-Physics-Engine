@@ -8,10 +8,10 @@
 // Run:    ./build/benchmark
 //         ./build/benchmark --max-n 16384 --trials 5
 
-#include "../../src/Particle/Particle.hpp"
-#include "../../src/Force/Force.hpp"
-#include "../../src/Integrator/Integrator.hpp"
-#include "../../src/Config.hpp"
+#include "../src/Particle/Particle.hpp"
+#include "../src/Force/Force.hpp"
+#include "../src/Integrator/Integrator.hpp"
+#include "../src/Config.hpp"
 
 #include <iostream>
 #include <iomanip>
