@@ -149,24 +149,27 @@ int main( int argc, char* argv[] ) {
 
     // Capture max threads before any omp_set_num_threads calls.
     int const max_threads{ omp_get_max_threads() };
+    int omp_threads{ max_threads };
 
     for ( int i{ 1 }; i < argc; ++i ) {
         std::string const arg{ argv[i] };
         if ( arg == "--max-n" && i + 1 < argc ) { max_n = std::stoull( argv[++i] ); }
         else if ( arg == "--trials" && i + 1 < argc ) { num_trials = std::stoull( argv[++i] ); }
         else if ( arg == "--target-ms" && i + 1 < argc ) { target_ms = std::stod( argv[++i] ); }
+        else if ( arg == "--threads" && i + 1 < argc ) { omp_threads = std::stoi( argv[++i] ); }
         else if ( arg == "-h" || arg == "--help" ) {
-            std::cout << "Usage: benchmark [--max-n N] [--trials N] [--target-ms MS]\n";
+            std::cout << "Usage: benchmark [--max-n N] [--trials N] [--target-ms MS] [--threads N]\n";
             std::cout << "  --max-n N       Maximum N for sweep (default: 8192)\n";
             std::cout << "  --trials N      Trials per config, reports median (default: 3)\n";
             std::cout << "  --target-ms MS  Target serial runtime per trial in ms (default: 2000)\n";
+            std::cout << "  --threads N     OMP thread count for parallel runs (default: max available)\n";
             return 0;
         }
     }
 
     std::cout << "\n<--- N-Body Scaling Benchmark --->\n";
     std::cout << "  Integrator:     Yoshida 4th-order (dt = 900 s)\n";
-    std::cout << "  OMP threads:    " << max_threads << "\n";
+    std::cout << "  OMP threads:    " << omp_threads << "\n";
     std::cout << "  Trials/config:  " << num_trials << " (median)\n";
     std::cout << "  Target serial:  " << std::fixed << std::setprecision( 0 ) << target_ms << " ms per trial\n";
     std::cout << "  OMP threshold:  N >= " << config::OMP_THRESHOLD << "\n\n";
@@ -197,7 +200,7 @@ int main( int argc, char* argv[] ) {
         std::size_t const steps{ calibrate_steps( N, target_ms ) };
 
         double const serial_ms{ run_median( N, steps, 1, num_trials ) };
-        double const omp_ms{ run_median( N, steps, max_threads, num_trials ) };
+        double const omp_ms{ run_median( N, steps, omp_threads, num_trials ) };
 
         double const total_flops{ estimated_flops_per_step( N ) * steps };
         double const serial_gflops{ total_flops / ( serial_ms * 1e6 ) };

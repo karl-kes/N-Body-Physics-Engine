@@ -11,8 +11,8 @@ from pathlib import Path
 #   Space  = play / pause
 #   Right  = step forward
 #   Left   = step backward
-#   Up     = speed up (2×)
-#   Down   = slow down (0.5×)
+#   Up     = speed up (2x)
+#   Down   = slow down (0.5x)
 #   R      = reset to frame 0
 #   T      = toggle trails
 #   Q      = quit
@@ -162,6 +162,8 @@ def main():
     state = {"frame": 0, "playing": True, "speed": args.speed, "trails_on": True}
 
     def update(frame_num):
+        # frame_gen() is the sole driver of state["frame"] during playback.
+        # update() only renders the current frame; it never advances it.
         f = state["frame"]
 
         for name in names:
@@ -185,13 +187,8 @@ def main():
 
         year = f / max(n_frames - 1, 1) * num_years
         title.set_text(f"Year {year:.1f} / {num_years}   |   "
-                       f"{'▶' if state['playing'] else '⏸'}  {state['speed']}×   |   "
+                       f"{'>' if state['playing'] else '||'}  {state['speed']}x   |   "
                        f"{len(names)} bodies")
-
-        if state["playing"]:
-            state["frame"] = min(f + 1, n_frames - 1)
-            if state["frame"] >= n_frames - 1:
-                state["frame"] = 0
 
         return []
 
@@ -215,7 +212,8 @@ def main():
 
     fig.canvas.mpl_connect("key_press_event", on_key)
 
-    # Interval adapts to speed:
+    # frame_gen() is the sole source of frame advancement during playback.
+    # update() reads state["frame"] but never modifies it.
     def frame_gen():
         while True:
             if state["playing"]:

@@ -1,3 +1,5 @@
+// tests/unit_tests.cpp
+//
 // Self-contained unit tests for the N-body engine.
 // No external test framework required - builds standalone.
 //
@@ -493,13 +495,24 @@ TEST( three_body_energy_conservation ) {
 // 6. Particle SoA layout
 
 TEST( particle_soa_contiguous_memory ) {
+    // Verify that SoA sub-arrays are evenly strided in memory.
+    // With aligned allocation, the stride may be larger than N due to
+    // SIMD-width padding (e.g. N=10 rounds up to 12 on AVX2).
     Particles p{ 10 };
     double* px{ p.pos_x() };
     double* py{ p.pos_y() };
-    ASSERT_TRUE( py == px + 10 );
 
+    // pos_y should start exactly one stride after pos_x.
+    std::ptrdiff_t const stride{ py - px };
+    ASSERT_TRUE( stride >= 10 );
+
+    // All subsequent arrays should be at the same stride interval.
+    double* pz{ p.pos_z() };
+    ASSERT_TRUE( pz - py == stride );
+
+    // mass is sub-array index 12, so it should be 12 strides from pos_x.
     double* mass{ p.mass() };
-    ASSERT_TRUE( mass == px + 12 * 10 );
+    ASSERT_TRUE( mass == px + 12 * stride );
     ++g_pass;
 }
 

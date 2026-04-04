@@ -17,17 +17,42 @@ Simulation::Simulation(
 { }
 
 void Simulation::run() {
+    if ( !integrator_ ) {
+        throw std::runtime_error( "No integrator set. Call set_integrator() before run()." );
+    }
+    if ( forces_.empty() ) {
+        throw std::runtime_error( "No forces added. Call add_force() before run()." );
+    }
+
+    // Compute initial accelerations so that integrators which read acceleration
+    // on their first step (e.g. Velocity Verlet) start from a valid state.
+    // Yoshida does not need this (it computes forces internally), but it is
+    // harmless and makes the API contract explicit: after run() begins,
+    // accelerations are always valid.
+    for ( std::size_t i{}; i < num_bodies(); ++i ) {
+        particles().acc_x()[i] = 0.0;
+        particles().acc_y()[i] = 0.0;
+        particles().acc_z()[i] = 0.0;
+    }
+    for ( auto const &force : forces() ) {
+        force->apply( particles() );
+    }
+
     double const initial_energy{ total_energy() };
     double min_energy{ initial_energy };
     double max_energy{ initial_energy };
 
-    double const initial_ang_momentum{ total_ang_momentum() };
-    double min_ang_momentum{ initial_ang_momentum };
-    double max_ang_momentum{ initial_ang_momentum };
+    // Track angular momentum as a vector to detect rotation, not just magnitude drift.
+    double L0_x{}, L0_y{}, L0_z{};
+    total_ang_momentum_vec( L0_x, L0_y, L0_z );
+    double const initial_ang_momentum{ std::sqrt( L0_x*L0_x + L0_y*L0_y + L0_z*L0_z ) };
+    double max_ang_momentum_vec_drift{};
 
-    double const initial_lin_momentum{ total_lin_momentum() };
-    double min_lin_momentum{ initial_lin_momentum };
-    double max_lin_momentum{ initial_lin_momentum };
+    // Track linear momentum as a vector for the same reason.
+    double P0_x{}, P0_y{}, P0_z{};
+    total_lin_momentum_vec( P0_x, P0_y, P0_z );
+    double const initial_lin_momentum{ std::sqrt( P0_x*P0_x + P0_y*P0_y + P0_z*P0_z ) };
+    double max_lin_momentum_vec_drift{};
 
     initial_output();
 
@@ -48,13 +73,17 @@ void Simulation::run() {
             max_energy = std::max( E, max_energy );
             min_energy = std::min( E, min_energy );
 
-            double const L{ total_ang_momentum() };
-            max_ang_momentum = std::max( max_ang_momentum, L );
-            min_ang_momentum = std::min( min_ang_momentum, L );
+            double Lx{}, Ly{}, Lz{};
+            total_ang_momentum_vec( Lx, Ly, Lz );
+            double const dLx{ Lx - L0_x }, dLy{ Ly - L0_y }, dLz{ Lz - L0_z };
+            double const L_vec_drift{ std::sqrt( dLx*dLx + dLy*dLy + dLz*dLz ) };
+            max_ang_momentum_vec_drift = std::max( max_ang_momentum_vec_drift, L_vec_drift );
 
-            double const P{ total_lin_momentum() };
-            max_lin_momentum = std::max( max_lin_momentum, P );
-            min_lin_momentum = std::min( min_lin_momentum, P );
+            double Px{}, Py{}, Pz{};
+            total_lin_momentum_vec( Px, Py, Pz );
+            double const dPx{ Px - P0_x }, dPy{ Py - P0_y }, dPz{ Pz - P0_z };
+            double const P_vec_drift{ std::sqrt( dPx*dPx + dPy*dPy + dPz*dPz ) };
+            max_lin_momentum_vec_drift = std::max( max_lin_momentum_vec_drift, P_vec_drift );
 
             print_progress( curr_step, steps() );
         }
@@ -71,12 +100,19 @@ void Simulation::run() {
     // Peak-to-peak relative variation: |max - min| / |initial|.
     // This is a conservative upper bound; see paper Section 4 for discussion.
     double const energy_drift{ std::abs( 100.0 * ( max_energy - min_energy ) / initial_energy ) };
-    double const ang_momentum_drift{ std::abs( 100.0 * ( max_ang_momentum - min_ang_momentum ) / initial_ang_momentum ) };
-    double const lin_momentum_drift{ std::abs( 100.0 * ( max_lin_momentum - min_lin_momentum ) / initial_lin_momentum ) };
+
+    // Vector-based momentum drift: max ||Q(t) - Q(0)|| / ||Q(0)||.
+    // This catches both magnitude changes and directional rotation.
+    double const ang_momentum_drift{ initial_ang_momentum > 0.0
+        ? 100.0 * max_ang_momentum_vec_drift / initial_ang_momentum : 0.0 };
+    double const lin_momentum_drift{ initial_lin_momentum > 0.0
+        ? 100.0 * max_lin_momentum_vec_drift / initial_lin_momentum : 0.0 };
 
     std::cout << "\nMax Energy Drift: " << std::scientific << std::setprecision( 6 ) << energy_drift << "%" << std::endl;
-    std::cout << "Max Angular Momentum Drift: " << std::scientific << std::setprecision( 6 ) << ang_momentum_drift << "%" << std::endl;
-    std::cout << "Max Linear Momentum Drift: " << std::scientific << std::setprecision( 6 ) << lin_momentum_drift << "%" << std::endl;
+    std::cout << "Max Angular Momentum Drift: " << std::scientific << std::setprecision( 6 ) << ang_momentum_drift << "%"
+              << "  (max ||L(t)-L(0)|| = " << max_ang_momentum_vec_drift << ")" << std::endl;
+    std::cout << "Max Linear Momentum Drift: " << std::scientific << std::setprecision( 6 ) << lin_momentum_drift << "%"
+              << "  (max ||P(t)-P(0)|| = " << max_lin_momentum_vec_drift << ")" << std::endl;
     std::cout << "Duration of Simulation: " << duration.count() << " ms" << std::endl;
 }
 
@@ -157,7 +193,7 @@ double Simulation::total_energy() const {
     return kinetic_energy + potential_energy;
 }
 
-double Simulation::total_ang_momentum() const {
+void Simulation::total_ang_momentum_vec( double &Lx, double &Ly, double &Lz ) const {
     std::size_t const N{ particles().num_particles() };
     double const* RESTRICT m{ particles().mass() };
 
@@ -169,18 +205,16 @@ double Simulation::total_ang_momentum() const {
     double const* RESTRICT vy{ particles().vel_y() };
     double const* RESTRICT vz{ particles().vel_z() };
 
-    double Lx{}, Ly{}, Lz{};
+    Lx = 0.0; Ly = 0.0; Lz = 0.0;
     #pragma omp simd reduction( +:Lx, Ly, Lz )
     for ( std::size_t i = 0; i < N; ++i ) {
         Lx += m[i] * ( py[i]*vz[i] - pz[i]*vy[i] );
         Ly += m[i] * ( pz[i]*vx[i] - px[i]*vz[i] );
         Lz += m[i] * ( px[i]*vy[i] - py[i]*vx[i] );
     }
-
-    return std::sqrt( Lx*Lx + Ly*Ly + Lz*Lz );
 }
 
-double Simulation::total_lin_momentum() const {
+void Simulation::total_lin_momentum_vec( double &Px, double &Py, double &Pz ) const {
     std::size_t const N{ particles().num_particles() };
 
     double const* RESTRICT m{ particles().mass() };
@@ -189,14 +223,24 @@ double Simulation::total_lin_momentum() const {
     double const* RESTRICT vy{ particles().vel_y() };
     double const* RESTRICT vz{ particles().vel_z() };
 
-    double Px{}, Py{}, Pz{};
+    Px = 0.0; Py = 0.0; Pz = 0.0;
     #pragma omp simd reduction( +:Px, Py, Pz )
     for ( std::size_t i = 0; i < N; ++i ) {
         Px += m[i] * vx[i];
         Py += m[i] * vy[i];
         Pz += m[i] * vz[i];
     }
+}
 
+double Simulation::total_ang_momentum() const {
+    double Lx{}, Ly{}, Lz{};
+    total_ang_momentum_vec( Lx, Ly, Lz );
+    return std::sqrt( Lx*Lx + Ly*Ly + Lz*Lz );
+}
+
+double Simulation::total_lin_momentum() const {
+    double Px{}, Py{}, Pz{};
+    total_lin_momentum_vec( Px, Py, Pz );
     return std::sqrt( Px*Px + Py*Py + Pz*Pz );
 }
 

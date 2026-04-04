@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <cmath>
 #include <chrono>
+#include <stdexcept>
 
 #if defined(__GNUC__) || defined(__clang__)
     #define RESTRICT __restrict__
@@ -37,6 +38,12 @@ private:
     double total_energy() const;
     double total_ang_momentum() const;
     double total_lin_momentum() const;
+
+    // Vector-based conservation diagnostics.
+    // These return the full 3-vector so drift can be measured as ||Q(t) - Q(0)||,
+    // catching both magnitude changes and directional rotation.
+    void total_ang_momentum_vec( double &Lx, double &Ly, double &Lz ) const;
+    void total_lin_momentum_vec( double &Px, double &Py, double &Pz ) const;
 
     void print_progress( std::size_t const current, std::size_t const total ) const {
         double const percent{ 100.0 * current / total };

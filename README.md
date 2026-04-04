@@ -2,13 +2,15 @@
 
 A high-performance N-body gravitational simulator for solar system dynamics, written in C++23. Integrates 35 bodies (the Sun, 8 planets, Pluto, and 25 natural satellites) over multi-century timescales using a 4th-order Yoshida symplectic integrator. Validated against NASA JPL Horizons DE441 ephemeris data.
 
-**[Technical Paper](docs/N_Body_Technical_Paper.pdf)** - Full derivations, validation methodology, and error analysis.
+**[Technical Paper](docs/N_Body_Technical_Paper.pdf)** — Full derivations, validation methodology, and error analysis.
 
 ---
 
 ## Key Results
 
 **249-year simulation (1950–2199), 35 bodies, Δt = 360 s, Yoshida 4th-order:**
+
+*Note: The shipped `Config.hpp` defaults to Δt = 900 s for convenience. The results below use Δt = 360 s, which is the production timestep used in the [technical paper](docs/N_Body_Technical_Paper.pdf). Both lie on the floating-point precision floor and produce identical positional accuracy.*
 
 | Metric | Value |
 |---|---|
@@ -201,11 +203,11 @@ Displays 3D orbits alongside energy conservation, momentum drift, and heliocentr
 
 **Yoshida 4th-order symplectic integrator.** Four position drifts interleaved with three force evaluations per timestep, achieving O(Δt⁴) local truncation error. The negative intermediate coefficient introduces a backward sub-step essential for error cancellation. Energy errors remain bounded and oscillatory over arbitrarily long integrations.
 
-**Structure-of-Arrays memory layout.** All particle data occupies a single contiguous allocation (~3.6 KB for 35 bodies), fitting entirely in L1 cache. `__restrict__`-qualified pointers enable SIMD auto-vectorization.
+**Structure-of-Arrays memory layout.** All particle data occupies a single contiguous allocation with SIMD-aligned sub-arrays (AVX2: 32-byte, AVX-512: 64-byte). Each sub-array is padded to a SIMD-width boundary so that every array start is naturally aligned for vectorized loads/stores. `__restrict__`-qualified pointers enable SIMD auto-vectorization.
 
 **Branchless force kernel.** Self-interaction is eliminated with a floating-point mask rather than a conditional branch, preserving SIMD vectorization. Newton's third law symmetry is intentionally not exploited; the doubled FLOP count is traded for regular memory access patterns and freedom from race conditions under OpenMP.
 
-**OpenMP parallelization.** Thread parallelism activates above a configurable threshold. SIMD vectorization of the inner loop is always active. At N = 131,072, OpenMP yields 4.60× (124810.4 ms to 27145.6 ms) speedup on 12 threads, with throughput reaching an estimated ~153.79 GFLOP/s compared with an estimated ~33.45 GFLOP/s for the 1-thread baseline. Scaling improves with N and then saturates, suggesting limitation by shared hardware resources such as cache, memory hierarchy, and thread-level overhead.
+**OpenMP parallelization.** Thread parallelism activates above a configurable threshold. SIMD vectorization of the inner loop is always active. At N = 131,072, OpenMP yields 4.60x speedup on 12 threads (124,810 ms to 27,146 ms), with throughput reaching an estimated ~154 GFLOP/s compared with ~33 GFLOP/s for the serial baseline. Scaling improves with N and then saturates, suggesting limitation by shared hardware resources such as cache, memory hierarchy, and thread-level overhead.
 
 ---
 
