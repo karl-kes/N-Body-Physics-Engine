@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <cstdlib>
 
 // Aligned allocation:
 #if defined(_WIN32)
