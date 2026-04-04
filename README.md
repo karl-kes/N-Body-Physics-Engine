@@ -2,7 +2,7 @@
 
 A high-performance N-body gravitational simulator for solar system dynamics, written in C++23. Integrates 35 bodies (the Sun, 8 planets, Pluto, and 25 natural satellites) over multi-century timescales using a 4th-order Yoshida symplectic integrator. Validated against NASA JPL Horizons DE441 ephemeris data.
 
-**[Technical Paper](docs/N_Body_Technical_Paper.pdf)** — Full derivations, validation methodology, and error analysis.
+**[Technical Paper](docs/N_Body_Technical_Paper.pdf)** - Full derivations, validation methodology, and error analysis.
 
 ---
 
@@ -85,6 +85,37 @@ Change these values, rebuild, and everything adapts automatically. The Python sc
 
 ---
 
+## Testing
+
+### Unit Tests
+
+16 tests covering integrator coefficients, force kernel correctness, Kepler orbit conservation laws, convergence order verification, and SoA memory layout.
+
+```bash
+cmake --build build --target tests
+./build/tests
+```
+
+Or use the runner script:
+
+```bash
+./scripts/test.sh                    # build and run unit tests
+./scripts/test.sh --benchmark        # also run scaling benchmark
+./scripts/test.sh --bench-only       # benchmark only
+```
+
+### Scaling Benchmark
+
+Measures integration-step throughput (serial vs OpenMP) across a range of N values. Auto-calibrates step count per trial, runs multiple trials, and reports median wall time.
+
+```bash
+cmake --build build --target benchmark
+./build/benchmark                          # default: N up to 8192, 3 trials
+./build/benchmark --max-n 16384 --trials 5
+```
+
+---
+
 ## Validation
 
 `jpl_compare.py compare` reports per-body metrics in two tables:
@@ -151,8 +182,13 @@ Displays 3D orbits alongside energy conservation, momentum drift, and heliocentr
 │   └── render.py               # Rerun dashboard with diagnostics
 ├── scripts/
 │   ├── run.sh                  # Full pipeline runner (Linux/macOS)
-│   └── run.ps1                 # Full pipeline runner (Windows)
-├── tests/                      # Generated validation data (gitignored)
+│   ├── run.ps1                 # Full pipeline runner (Windows)
+│   ├── test.sh                 # Test & benchmark runner (Linux/macOS)
+│   └── test.ps1                # Test & benchmark runner (Windows)
+├── tests/
+│   ├── unit_tests/             # 16 unit tests (integrator, force, conservation)
+│   ├── benchmark/              # Serial vs OpenMP scaling benchmark
+│   └── ...                     # Generated validation data (gitignored)
 ├── docs/
 │   └── N_Body_Technical_Paper.pdf
 ├── CMakeLists.txt
@@ -169,7 +205,7 @@ Displays 3D orbits alongside energy conservation, momentum drift, and heliocentr
 
 **Branchless force kernel.** Self-interaction is eliminated with a floating-point mask rather than a conditional branch, preserving SIMD vectorization. Newton's third law symmetry is intentionally not exploited; the doubled FLOP count is traded for regular memory access patterns and freedom from race conditions under OpenMP.
 
-**OpenMP parallelization.** Thread parallelism activates at N ≥ 500. SIMD vectorization of the inner loop is always active. At N = 1,050 (synthetic scaling benchmark), OpenMP yields 3.96× speedup on 6 cores.
+**OpenMP parallelization.** Thread parallelism activates above a configurable threshold. SIMD vectorization of the inner loop is always active. At N = 16,384, OpenMP yields 5.8× speedup on 22 threads, with throughput peaking at ~126 estimated GFLOP/s. Scaling is limited by memory bandwidth on laptop-class hardware; the force kernel is bandwidth-bound at ~21 GFLOP/s per core.
 
 ---
 
