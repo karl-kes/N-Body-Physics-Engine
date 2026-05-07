@@ -30,7 +30,7 @@ public:
     virtual ~Integrator() = default;
     virtual void integrate( Particles &particles, std::vector<std::unique_ptr<Force>> const &forces ) const = 0;
     [[nodiscard]] double dt() const { return dt_; }
-    [[nodiscard]] const std::string &name() const { return name_; }
+    [[nodiscard]] std::string const &name() const { return name_; }
 };
 
 class Velocity_Verlet : public Integrator {

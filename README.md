@@ -1,8 +1,10 @@
 # N-Body Gravity Engine
 
-A high-performance N-body gravitational simulator for solar system dynamics, written in C++23. Integrates 35 bodies (the Sun, 8 planets, Pluto, and 25 natural satellites) over multi-century timescales using a 4th-order Yoshida symplectic integrator. Validated against NASA JPL Horizons DE441 ephemeris data.
+A high-performance N-body gravitational simulator for solar system dynamics, written in C++23. Integrates 35 bodies (the Sun, 8 planets, Pluto, and 25 natural satellites) over multi-century timescales using a 4th-order Yoshida symplectic integrator. Validated against NASA JPL Horizons DE441 ephemeris data. Two force kernels are available: a SIMD-vectorized direct O(N²) sum for small-N production runs, and a Barnes-Hut O(N log N) octree for larger ensembles.
 
-**[Technical Paper](docs/N_Body_Technical_Paper.pdf)** — Full derivations, validation methodology, and error analysis.
+## Technical Paper
+
+**[N_Body_Technical_Paper.pdf](docs/N_Body_Technical_Paper.pdf)** is the canonical reference for this engine. It covers the symplectic integrator derivation, the softened Newtonian force model, the validation methodology against JPL Horizons DE441, the timestep convergence study that places Δt ≤ 900 s on the floating-point precision floor, and the residual error attribution. Read the paper before drawing scientific conclusions from the code; the README is a quick-start, the paper is the specification.
 
 ---
 
@@ -47,7 +49,8 @@ cmake -B build
 cmake --build build
 
 # 3. Run simulation
-./build/main
+./build/main                                # default: direct O(N^2)
+./build/main --force bh --theta 0.5         # optional: Barnes-Hut O(N log N)
 
 # 4. Validate against JPL Horizons
 python src/jpl_compare.py compare
@@ -91,7 +94,7 @@ Change these values, rebuild, and everything adapts automatically. The Python sc
 
 ### Unit Tests
 
-16 tests covering integrator coefficients, force kernel correctness, Kepler orbit conservation laws, convergence order verification, and SoA memory layout.
+21 tests covering integrator coefficients, force kernel correctness (direct and Barnes-Hut), Kepler orbit conservation laws, convergence order verification, Barnes-Hut accuracy at low θ, and SoA memory layout.
 
 ```bash
 cmake --build build --target tests
@@ -108,13 +111,18 @@ Or use the runner script:
 
 ### Scaling Benchmark
 
-Measures integration-step throughput (serial vs OpenMP) across a range of N values. Auto-calibrates step count per trial, runs multiple trials, and reports median wall time.
+Measures integration-step throughput (serial vs OpenMP) across a range of N values. Auto-calibrates step count per trial, runs multiple trials, and reports median wall time. By default it sweeps both force kernels side by side; direct is gated off above N = 16384 since the O(N²) cost becomes impractical.
 
 ```bash
 cmake --build build --target benchmark
-./build/benchmark                          # default: N up to 8192, 3 trials
-./build/benchmark --max-n 16384 --trials 5
+./build/benchmark                                       # both kernels, θ = 0.5
+./build/benchmark --force direct                        # direct only (legacy)
+./build/benchmark --force bh --theta 0.3                # Barnes-Hut only, tighter MAC
+./build/benchmark --include-direct-above 32768          # run direct past the gate
+./build/benchmark --max-n 65536 --trials 5
 ```
+
+The output table reports `Direct(ms)`, `BH(ms)`, and `BH/Direct` columns; GFLOP/s is reported only for direct (the Barnes-Hut FLOP count is data-dependent). At small N the constant-factor overhead of the tree build means direct wins; the crossover sits around N = 1k–4k on the benchmark hardware.
 
 ---
 
@@ -122,8 +130,8 @@ cmake --build build --target benchmark
 
 `jpl_compare.py compare` reports per-body metrics in two tables:
 
-- **Relative position error** — max and RMS relative error (%) for each body, with all-body and Sun-excluded means
-- **Absolute position error** — max, RMS, and mean absolute error in km
+- **Relative position error**: max and RMS relative error (%) for each body, with all-body and Sun-excluded means
+- **Absolute position error**: max, RMS, and mean absolute error in km
 
 Results are also exported to `tests/comparison_results.json`.
 
@@ -174,7 +182,7 @@ Displays 3D orbits alongside energy conservation, momentum drift, and heliocentr
 │   ├── main.cpp                # Entry point
 │   ├── Config.hpp              # Single-source configuration
 │   ├── Body.hpp                # Initial conditions (auto-generated)
-│   ├── Force/                  # Gravity: O(N²), branchless SIMD kernel
+│   ├── Force/                  # Gravity: direct O(N²) SIMD kernel + Barnes-Hut O(N log N) octree
 │   ├── Integrator/             # Yoshida 4th-order + Velocity Verlet
 │   ├── Particle/               # SoA particle data (single contiguous allocation)
 │   ├── Simulation/             # Time-stepping loop, conservation diagnostics
@@ -188,7 +196,7 @@ Displays 3D orbits alongside energy conservation, momentum drift, and heliocentr
 │   ├── test.sh                 # Test & benchmark runner (Linux/macOS)
 │   └── test.ps1                # Test & benchmark runner (Windows)
 ├── tests/
-│   ├── unit_tests/             # 16 unit tests (integrator, force, conservation)
+│   ├── unit_tests/             # 21 unit tests (integrator, force, conservation, Barnes-Hut)
 │   ├── benchmark/              # Serial vs OpenMP scaling benchmark
 │   └── ...                     # Generated validation data (gitignored)
 ├── docs/
@@ -206,6 +214,8 @@ Displays 3D orbits alongside energy conservation, momentum drift, and heliocentr
 **Structure-of-Arrays memory layout.** All particle data occupies a single contiguous allocation with SIMD-aligned sub-arrays (AVX2: 32-byte, AVX-512: 64-byte). Each sub-array is padded to a SIMD-width boundary so that every array start is naturally aligned for vectorized loads/stores. `__restrict__`-qualified pointers enable SIMD auto-vectorization.
 
 **Branchless force kernel.** Self-interaction is eliminated with a floating-point mask rather than a conditional branch, preserving SIMD vectorization. Newton's third law symmetry is intentionally not exploited; the doubled FLOP count is traded for regular memory access patterns and freedom from race conditions under OpenMP.
+
+**Barnes-Hut octree.** A second `Force` implementation provides O(N log N) gravity for larger ensembles. The tree is rebuilt every timestep via top-down counting-sort partition into octants; storage capacity is sticky across calls so only the size resets. Each node stores center of mass, total mass, bounding-box geometry, and eight child pointers, with leaves disambiguated by a sentinel `children[0] = -1`. Acceleration is computed with the Barnes-Hut multipole acceptance criterion `(2·half_width)² < θ²·d²`: distant subtrees collapse to a single COM evaluation, nearby subtrees recurse to leaf buckets (default size 8) where each particle is summed pairwise via the same softened Newtonian kernel as the direct path. Self-interaction in the leaf is masked with the same branchless trick. Traversal is OpenMP-parallel with `schedule(dynamic, 32)` because per-particle cost varies with local density; the tree itself is read-only during traversal so no synchronization is needed. The direct kernel remains the default at N = 35 because Barnes-Hut's tree-build overhead is not amortized at that scale and the symplectic energy guarantee weakens once the multipole approximation enters the loop.
 
 **OpenMP parallelization.** Thread parallelism activates above a configurable threshold. SIMD vectorization of the inner loop is always active. At N = 131,072, OpenMP yields 4.60x speedup on 12 threads (124,810 ms to 27,146 ms), with throughput reaching an estimated ~154 GFLOP/s compared with ~33 GFLOP/s for the serial baseline. Scaling improves with N and then saturates, suggesting limitation by shared hardware resources such as cache, memory hierarchy, and thread-level overhead.
 

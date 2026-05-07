@@ -1,15 +1,20 @@
-// tests/benchmark/benchmark.cpp
-//
 // Integration-step scaling benchmark: serial vs OpenMP across a range of N.
-// Times full Yoshida integration steps (3 force evaluations + drift/kick updates).
-// Reports wall time, estimated GFLOP/s, and speedup for each configuration.
+// Times full Yoshida integration steps (3 force evaluations + drift/kick
+// updates). By default sweeps both the direct O(N^2) kernel and Barnes-Hut
+// O(N log N) so the crossover is visible in a single run; direct is gated
+// off above --include-direct-above (default 16384) to keep large-N runs
+// tractable.
 //
 // Build:  cmake --build build --target benchmark
 // Run:    ./build/benchmark
-//         ./build/benchmark --max-n 16384 --trials 5
+//         ./build/benchmark --max-n 65536 --trials 5
+//         ./build/benchmark --force bh --theta 0.3
+//         ./build/benchmark --force direct
+//         ./build/benchmark --include-direct-above 32768
 
 #include "../src/Particle/Particle.hpp"
 #include "../src/Force/Force.hpp"
+#include "../src/Force/BarnesHut.hpp"
 #include "../src/Integrator/Integrator.hpp"
 #include "../src/Config.hpp"
 
@@ -24,6 +29,12 @@
 #include <algorithm>
 
 #include <omp.h>
+
+enum class ForceKind { Direct, BarnesHut };
+
+static char const* force_kind_label( ForceKind k ) {
+    return k == ForceKind::Direct ? "direct" : "bh";
+}
 
 // Populate N bodies with random state. Enforces a minimum pairwise separation
 // of `min_sep` meters to avoid near-singular force evaluations that would
@@ -75,21 +86,38 @@ static void populate_random( Particles &p, std::size_t const N, double const min
 struct BenchResult {
     std::size_t N;
     std::size_t steps;
-    double serial_ms;
-    double omp_ms;
-    double serial_gflops;
-    double omp_gflops;
-    double speedup;
+
+    bool has_direct;
+    double direct_serial_ms;
+    double direct_omp_ms;
+    double direct_serial_gflops;
+    double direct_omp_gflops;
+    double direct_speedup;
+
+    bool has_bh;
+    double bh_serial_ms;
+    double bh_omp_ms;
+    double bh_speedup;
+
+    // Cross-method ratio at OMP setting; only meaningful when both run.
+    double bh_over_direct_omp;
 };
 
-// Run `steps` Yoshida integration steps and return wall time in ms.
-// Thread count is set before calling this function.
-static double run_timed( std::size_t const N, std::size_t const steps ) {
+static std::unique_ptr<Force> make_force( ForceKind kind, double theta ) {
+    if ( kind == ForceKind::BarnesHut ) {
+        return std::make_unique<Gravity_BarnesHut>( theta );
+    }
+    return std::make_unique<Gravity>();
+}
+
+// Caller must set the OMP thread count before calling.
+static double run_timed( std::size_t const N, std::size_t const steps,
+                         ForceKind const kind, double const theta ) {
     Particles p{ N };
     populate_random( p, N );
 
     std::vector<std::unique_ptr<Force>> forces;
-    forces.push_back( std::make_unique<Gravity>() );
+    forces.push_back( make_force( kind, theta ) );
     Yoshida integ{ 900.0 };
 
     // Warmup: 3 steps to stabilize thread pool and caches.
@@ -108,35 +136,37 @@ static double run_timed( std::size_t const N, std::size_t const steps ) {
     return std::chrono::duration<double, std::milli>( end - start ).count();
 }
 
-// Run multiple trials, return the median wall time.
 static double run_median( std::size_t const N, std::size_t const steps,
-                          int const num_threads, std::size_t const trials ) {
+                          int const num_threads, std::size_t const trials,
+                          ForceKind const kind, double const theta ) {
     omp_set_num_threads( num_threads );
 
     std::vector<double> timings;
     timings.reserve( trials );
 
     for ( std::size_t t{}; t < trials; ++t ) {
-        timings.push_back( run_timed( N, steps ) );
+        timings.push_back( run_timed( N, steps, kind, theta ) );
     }
 
     std::sort( timings.begin(), timings.end() );
     return timings[trials / 2];
 }
 
-// Estimated FLOP count per Yoshida step.
 // 3 force evaluations x N x N pairwise interactions x ~27 FLOPs per pair
 // (sub, mul, add for dx/dy/dz, R_sq, 1/sqrt, mul chain, mask, accumulate)
-// plus drift/kick updates: ~84N FLOPs per step.
-// These are modeled estimates, not measured instruction counts.
-static double estimated_flops_per_step( std::size_t const N ) {
+// plus drift/kick updates: ~84N FLOPs per step. The BH kernel is data
+// dependent and is not modeled here.
+static double direct_flops_per_step( std::size_t const N ) {
     return 3.0 * N * N * 27.0 + 84.0 * N;
 }
 
-// Calibrate step count so serial runtime is approximately `target_ms`.
-static std::size_t calibrate_steps( std::size_t const N, double const target_ms ) {
+// Calibrate step count so the chosen kernel's serial runtime is approximately
+// `target_ms`. The same step count is then reused by both kernels at this N,
+// so wall times are directly comparable.
+static std::size_t calibrate_steps( std::size_t const N, double const target_ms,
+                                    ForceKind const kind, double const theta ) {
     omp_set_num_threads( 1 );
-    double const calibration_ms{ run_timed( N, 5 ) };
+    double const calibration_ms{ run_timed( N, 5, kind, theta ) };
     double const ms_per_step{ calibration_ms / 5.0 };
     std::size_t const estimated{ static_cast<std::size_t>( target_ms / ms_per_step ) };
     return std::clamp( estimated, static_cast<std::size_t>( 3 ), static_cast<std::size_t>( 500 ) );
@@ -146,8 +176,10 @@ int main( int argc, char* argv[] ) {
     std::size_t max_n{ 8192 };
     std::size_t num_trials{ 3 };
     double target_ms{ 2000.0 };
+    double theta{ 0.5 };
+    std::string mode{ "both" };
+    std::size_t include_direct_above{ 16384 };
 
-    // Capture max threads before any omp_set_num_threads calls.
     int const max_threads{ omp_get_max_threads() };
     int omp_threads{ max_threads };
 
@@ -157,25 +189,46 @@ int main( int argc, char* argv[] ) {
         else if ( arg == "--trials" && i + 1 < argc ) { num_trials = std::stoull( argv[++i] ); }
         else if ( arg == "--target-ms" && i + 1 < argc ) { target_ms = std::stod( argv[++i] ); }
         else if ( arg == "--threads" && i + 1 < argc ) { omp_threads = std::stoi( argv[++i] ); }
+        else if ( arg == "--theta" && i + 1 < argc ) { theta = std::stod( argv[++i] ); }
+        else if ( arg == "--force" && i + 1 < argc ) { mode = argv[++i]; }
+        else if ( arg == "--include-direct-above" && i + 1 < argc ) {
+            include_direct_above = std::stoull( argv[++i] );
+        }
         else if ( arg == "-h" || arg == "--help" ) {
-            std::cout << "Usage: benchmark [--max-n N] [--trials N] [--target-ms MS] [--threads N]\n";
-            std::cout << "  --max-n N       Maximum N for sweep (default: 8192)\n";
-            std::cout << "  --trials N      Trials per config, reports median (default: 3)\n";
-            std::cout << "  --target-ms MS  Target serial runtime per trial in ms (default: 2000)\n";
-            std::cout << "  --threads N     OMP thread count for parallel runs (default: max available)\n";
+            std::cout << "Usage: benchmark [--max-n N] [--trials N] [--target-ms MS]\n"
+                      << "                 [--threads N] [--force {direct|bh|both}]\n"
+                      << "                 [--theta T] [--include-direct-above N]\n"
+                      << "  --max-n N               Maximum N for sweep (default: 8192)\n"
+                      << "  --trials N              Trials per config, reports median (default: 3)\n"
+                      << "  --target-ms MS          Target serial runtime per trial in ms (default: 2000)\n"
+                      << "  --threads N             OMP thread count for parallel runs (default: max)\n"
+                      << "  --force MODE            'direct', 'bh', or 'both' (default: both)\n"
+                      << "  --theta T               BH opening angle (default: 0.5)\n"
+                      << "  --include-direct-above N  Skip direct above this N in 'both' mode (default: 16384)\n";
             return 0;
         }
     }
 
-    std::cout << "\n<--- N-Body Scaling Benchmark --->\n";
-    std::cout << "  Integrator:     Yoshida 4th-order (dt = 900 s)\n";
-    std::cout << "  OMP threads:    " << omp_threads << "\n";
-    std::cout << "  Trials/config:  " << num_trials << " (median)\n";
-    std::cout << "  Target serial:  " << std::fixed << std::setprecision( 0 ) << target_ms << " ms per trial\n";
-    std::cout << "  OMP threshold:  N >= " << config::OMP_THRESHOLD << "\n\n";
+    if ( mode != "direct" && mode != "bh" && mode != "both" ) {
+        std::cerr << "error: --force must be 'direct', 'bh', or 'both'\n";
+        return 1;
+    }
+
+    std::cout << "\n<--- N-Body Scaling Benchmark --->\n"
+              << "  Integrator:        Yoshida 4th-order (dt = 900 s)\n"
+              << "  Force mode:        " << mode << "\n"
+              << "  Theta (BH):        " << theta << "\n"
+              << "  OMP threads:       " << omp_threads << "\n"
+              << "  Trials/config:     " << num_trials << " (median)\n"
+              << "  Target serial:     " << std::fixed << std::setprecision( 0 ) << target_ms << " ms per trial\n"
+              << "  OMP threshold:     N >= " << config::OMP_THRESHOLD << "\n";
+    if ( mode == "both" ) {
+        std::cout << "  Skip direct above: N > " << include_direct_above << "\n";
+    }
+    std::cout << "\n";
 
     // Start at OMP_THRESHOLD (rounded up to next power of 2) so the parallel
-    // code path in Force.cpp is always active.
+    // code path is always active.
     std::vector<std::size_t> N_values;
     std::size_t n_start{ 1 };
     while ( n_start < config::OMP_THRESHOLD ) n_start *= 2;
@@ -188,54 +241,108 @@ int main( int argc, char* argv[] ) {
     std::cout << std::left
               << std::setw( 8 )  << "N"
               << std::setw( 8 )  << "Steps"
-              << std::setw( 14 ) << "Serial (ms)"
-              << std::setw( 14 ) << "OMP (ms)"
-              << std::setw( 10 ) << "Speedup"
-              << std::setw( 16 ) << "~Serial GFLOP/s"
-              << std::setw( 16 ) << "~OMP GFLOP/s"
+              << std::setw( 14 ) << "Direct(ms)"
+              << std::setw( 14 ) << "Dir-OMP(ms)"
+              << std::setw( 11 ) << "Dir-Spd"
+              << std::setw( 14 ) << "BH(ms)"
+              << std::setw( 14 ) << "BH-OMP(ms)"
+              << std::setw( 11 ) << "BH-Spd"
+              << std::setw( 11 ) << "BH/Direct"
               << "\n";
-    std::cout << std::string( 86, '=' ) << "\n";
+    std::cout << std::string( 105, '=' ) << "\n";
 
     for ( std::size_t const N : N_values ) {
-        std::size_t const steps{ calibrate_steps( N, target_ms ) };
+        bool const run_direct{ ( mode == "direct" || mode == "both" )
+                               && ( mode != "both" || N <= include_direct_above ) };
+        bool const run_bh{ mode == "bh" || mode == "both" };
 
-        double const serial_ms{ run_median( N, steps, 1, num_trials ) };
-        double const omp_ms{ run_median( N, steps, omp_threads, num_trials ) };
+        // Calibrate using whichever kernel will actually run; prefer direct
+        // (its cost model is well-defined) if it's in scope.
+        ForceKind const calib_kind{ run_direct ? ForceKind::Direct : ForceKind::BarnesHut };
+        std::size_t const steps{ calibrate_steps( N, target_ms, calib_kind, theta ) };
 
-        double const total_flops{ estimated_flops_per_step( N ) * steps };
-        double const serial_gflops{ total_flops / ( serial_ms * 1e6 ) };
-        double const omp_gflops{ total_flops / ( omp_ms * 1e6 ) };
-        double const speedup{ serial_ms / omp_ms };
+        BenchResult r{};
+        r.N = N;
+        r.steps = steps;
+        r.has_direct = run_direct;
+        r.has_bh = run_bh;
 
-        results.push_back( { N, steps, serial_ms, omp_ms,
-                             serial_gflops, omp_gflops, speedup } );
+        if ( run_direct ) {
+            double const ser{ run_median( N, steps, 1, num_trials, ForceKind::Direct, theta ) };
+            double const omp{ run_median( N, steps, omp_threads, num_trials, ForceKind::Direct, theta ) };
+            double const tot_flops{ direct_flops_per_step( N ) * steps };
+            r.direct_serial_ms = ser;
+            r.direct_omp_ms = omp;
+            r.direct_serial_gflops = tot_flops / ( ser * 1e6 );
+            r.direct_omp_gflops = tot_flops / ( omp * 1e6 );
+            r.direct_speedup = ser / omp;
+        }
+
+        if ( run_bh ) {
+            double const ser{ run_median( N, steps, 1, num_trials, ForceKind::BarnesHut, theta ) };
+            double const omp{ run_median( N, steps, omp_threads, num_trials, ForceKind::BarnesHut, theta ) };
+            r.bh_serial_ms = ser;
+            r.bh_omp_ms = omp;
+            r.bh_speedup = ser / omp;
+        }
+
+        if ( run_direct && run_bh ) {
+            r.bh_over_direct_omp = r.bh_omp_ms / r.direct_omp_ms;
+        }
+
+        results.push_back( r );
 
         std::cout << std::left << std::fixed
-                  << std::setw( 8 )  << N
-                  << std::setw( 8 )  << steps
-                  << std::setw( 14 ) << std::setprecision( 1 ) << serial_ms
-                  << std::setw( 14 ) << std::setprecision( 1 ) << omp_ms
-                  << std::setw( 10 ) << std::setprecision( 2 ) << speedup
-                  << std::setw( 16 ) << std::setprecision( 2 ) << serial_gflops
-                  << std::setw( 16 ) << std::setprecision( 2 ) << omp_gflops
-                  << "\n" << std::flush;
+                  << std::setw( 8 ) << N
+                  << std::setw( 8 ) << steps;
+        if ( run_direct ) {
+            std::cout << std::setw( 14 ) << std::setprecision( 1 ) << r.direct_serial_ms
+                      << std::setw( 14 ) << std::setprecision( 1 ) << r.direct_omp_ms
+                      << std::setw( 11 ) << std::setprecision( 2 ) << r.direct_speedup;
+        } else {
+            std::cout << std::setw( 14 ) << "--"
+                      << std::setw( 14 ) << "--"
+                      << std::setw( 11 ) << "--";
+        }
+        if ( run_bh ) {
+            std::cout << std::setw( 14 ) << std::setprecision( 1 ) << r.bh_serial_ms
+                      << std::setw( 14 ) << std::setprecision( 1 ) << r.bh_omp_ms
+                      << std::setw( 11 ) << std::setprecision( 2 ) << r.bh_speedup;
+        } else {
+            std::cout << std::setw( 14 ) << "--"
+                      << std::setw( 14 ) << "--"
+                      << std::setw( 11 ) << "--";
+        }
+        if ( run_direct && run_bh ) {
+            std::cout << std::setw( 11 ) << std::setprecision( 3 ) << r.bh_over_direct_omp;
+        } else {
+            std::cout << std::setw( 11 ) << "--";
+        }
+        std::cout << "\n" << std::flush;
     }
 
-    std::cout << std::string( 86, '=' ) << "\n\n";
+    std::cout << std::string( 105, '=' ) << "\n\n";
 
-    // Restore thread count
     omp_set_num_threads( max_threads );
 
-    // CSV output for plotting
+    // CSV output for plotting. GFLOP/s reported only for the direct kernel.
     std::cout << "CSV (for plotting):\n";
-    std::cout << "N,steps,serial_ms,omp_ms,speedup,serial_gflops,omp_gflops\n";
+    std::cout << "N,steps,method,serial_ms,omp_ms,speedup,gflops_serial,gflops_omp\n";
     for ( auto const &r : results ) {
-        std::cout << r.N << "," << r.steps << ","
-                  << std::fixed << std::setprecision( 2 )
-                  << r.serial_ms << "," << r.omp_ms << ","
-                  << std::setprecision( 3 ) << r.speedup << ","
-                  << std::setprecision( 3 ) << r.serial_gflops << ","
-                  << r.omp_gflops << "\n";
+        if ( r.has_direct ) {
+            std::cout << r.N << "," << r.steps << "," << force_kind_label( ForceKind::Direct ) << ","
+                      << std::fixed << std::setprecision( 2 )
+                      << r.direct_serial_ms << "," << r.direct_omp_ms << ","
+                      << std::setprecision( 3 ) << r.direct_speedup << ","
+                      << r.direct_serial_gflops << "," << r.direct_omp_gflops << "\n";
+        }
+        if ( r.has_bh ) {
+            std::cout << r.N << "," << r.steps << "," << force_kind_label( ForceKind::BarnesHut ) << ","
+                      << std::fixed << std::setprecision( 2 )
+                      << r.bh_serial_ms << "," << r.bh_omp_ms << ","
+                      << std::setprecision( 3 ) << r.bh_speedup << ","
+                      << ",\n";  // empty gflops fields; BH FLOP model is data-dependent
+        }
     }
 
     return 0;

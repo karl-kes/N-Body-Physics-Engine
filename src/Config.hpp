@@ -17,7 +17,7 @@ namespace config {
     inline static constexpr double DAYS_PER_YEAR{ 365.25 };
     inline static constexpr double SECONDS_PER_YEAR{ SECONDS_PER_DAY * DAYS_PER_YEAR };
 
-    // USER CONFIG — change these, everything else adapts:
+    // USER CONFIG. Change these; everything else adapts:
 
     inline static constexpr double dt{ 900 };                   // Integration timestep (seconds)
     inline static constexpr std::size_t num_years{ 249 };       // Simulation duration (years)
@@ -31,7 +31,7 @@ namespace config {
 
     inline static constexpr std::size_t OMP_THRESHOLD{ 350 };
 
-    // COMPILE-TIME CHECK — output_interval must divide evenly:
+    // COMPILE-TIME CHECK: output_interval must divide evenly.
     static_assert (
         static_cast<std::size_t>( output_hours * SECONDS_PER_HOUR ) % static_cast<std::size_t>( dt ) == 0,
         "output_hours * 3600 must be divisible by dt"

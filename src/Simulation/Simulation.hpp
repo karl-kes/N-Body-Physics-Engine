@@ -53,19 +53,16 @@ private:
     }
 
 public:
-    // Constructor:
     explicit Simulation(
         std::size_t const num_particles,
-        std::size_t const steps, 
+        std::size_t const steps,
         std::size_t const output_interval,
         std::vector<std::string> names,
         std::string output_path
     );
 
-    // Getters & Setters:
-    // Particles:
     Particles &particles() { return particles_; }
-    [[nodiscard]] const Particles &particles() const { return particles_; }
+    [[nodiscard]] Particles const &particles() const { return particles_; }
 
     [[nodiscard]] std::size_t steps() const { return num_steps_; }
     [[nodiscard]] std::size_t output_interval() const { return output_interval_; }
@@ -74,7 +71,6 @@ public:
     [[nodiscard]] std::vector<std::unique_ptr<Force>> &forces() { return forces_; }
     [[nodiscard]] std::unique_ptr<Integrator> &integrator() { return integrator_; }
 
-    // Simulation Functions:
     void run();
     void add_force( std::unique_ptr<Force> force );
     void set_integrator( std::unique_ptr<Integrator> sim_integrator );

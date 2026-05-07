@@ -9,12 +9,14 @@ set(SOURCES
     src/main.cpp
     src/Output/Output.cpp
     src/Force/Force.cpp
+    src/Force/BarnesHut.cpp
     src/Integrator/Integrator.cpp
     src/Simulation/Simulation.cpp
 )
 
 set(CORE_SOURCES
     src/Force/Force.cpp
+    src/Force/BarnesHut.cpp
     src/Integrator/Integrator.cpp
 )
 
